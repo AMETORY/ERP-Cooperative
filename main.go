@@ -113,11 +113,14 @@ func main() {
 	erpContext.EmailSender = emailSender
 
 	v1 := r.Group("/api/v1")
+
+	r.Static("/assets/files", "./assets/files")
 	routes.SetupWSRoutes(v1, erpContext)
 	routes.SetupAuthRoutes(v1, erpContext)
 	routes.SetupCompanyRoutes(v1, erpContext)
 	routes.SetupAccountRoutes(v1, erpContext)
 	routes.SetupRegionalRoutes(v1, erpContext)
+	routes.SetupCommonRoutes(v1, erpContext)
 
 	go func() {
 		workers.SendMail(erpContext)

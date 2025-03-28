@@ -25,6 +25,7 @@ func NewAppService(ctx *context.ERPContext, config *config.Config, redis *redis.
 	if !ctx.SkipMigration {
 		ctx.DB.AutoMigrate(
 			&app_models.AppModel{},
+			&app_models.CustomSettingModel{},
 		)
 	}
 	return &AppService{
