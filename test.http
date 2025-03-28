@@ -1,0 +1,9 @@
+### REGISTER
+POST http://localhost:8085/api/v1/auth/register
+
+{
+    "full_name": "janeDoe",
+    "password": "password123",
+    "email": "janeDoe@example.com",
+    "phone_number": "1234567890"
+}
