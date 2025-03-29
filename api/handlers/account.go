@@ -26,6 +26,17 @@ func NewAccountHandler(ctx *context.ERPContext) *AccountHandler {
 	}
 }
 
+func (a *AccountHandler) GetAccountTypesHandler(c *gin.Context) {
+	types := a.financeSrv.AccountService.GetTypes()
+	c.JSON(200, gin.H{"data": types})
+}
+func (a *AccountHandler) GetCodeHandler(c *gin.Context) {
+	typeAccount := c.Query("type")
+	var account models.AccountModel
+	a.ctx.DB.Order("created_at desc").First(&account, "type = ?", typeAccount)
+
+	c.JSON(200, gin.H{"last_code": account.Code})
+}
 func (a *AccountHandler) GetChartOfAccounts(c *gin.Context) {
 	coa := account.GenericChartOfAccount
 	template := c.Query("template")

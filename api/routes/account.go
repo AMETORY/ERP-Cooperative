@@ -14,6 +14,8 @@ func SetupAccountRoutes(r *gin.RouterGroup, erpContext *context.ERPContext) {
 	accountGroup.Use(middlewares.AuthMiddleware(erpContext, false))
 	{
 		accountGroup.GET("/chart-of-accounts", accountHandler.GetChartOfAccounts)
+		accountGroup.GET("/account-types", accountHandler.GetAccountTypesHandler)
+		accountGroup.GET("/get-code", accountHandler.GetCodeHandler)
 		accountGroup.POST("/create", accountHandler.CreateAccountHandler)
 		accountGroup.GET("/list", accountHandler.GetAccountHandler)
 		accountGroup.GET("/:id", accountHandler.GetAccountByIdHandler)
