@@ -306,21 +306,18 @@ func (h *CommonHandler) CompanySettingHandler(c *gin.Context) {
 	c.JSON(200, gin.H{"message": "Get company setting successfully", "data": setting})
 }
 func (h *CommonHandler) UpdateCompanySettingHandler(c *gin.Context) {
-	// var input struct {
-	// 	models.CompanyModel
-	// 	Setting com.CompanySetting `json:"setting"`
-	// }
-	// err := c.ShouldBindJSON(&input)
-	// if err != nil {
-	// 	c.JSON(400, gin.H{"error": err.Error()})
-	// 	return
-	// }
-	// h.ctx.Request = c.Request
-	// err = h.companyService.UpdateCompany(c.GetHeader("ID-Company"), &input.CompanyModel)
-	// if err != nil {
-	// 	c.JSON(400, gin.H{"error": err.Error()})
-	// 	return
-	// }
+	var input app_models.CustomSettingModel
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+	h.ctx.Request = c.Request
+	err = h.ctx.DB.Where("id = ?", input.ID).Updates(&input).Error
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
 	// err = h.ctx.DB.Model(&input.Setting).Where("company_id = ?", input.CompanyModel.ID).Updates(map[string]any{
 	// 	"gemini_api_key":           input.Setting.GeminiAPIKey,
 	// 	"whatsapp_web_host":        input.Setting.WhatsappWebHost,

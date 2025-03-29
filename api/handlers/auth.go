@@ -205,7 +205,7 @@ func (h *AuthHandler) VerificationEmailHandler(c *gin.Context) {
 
 func (h *AuthHandler) GetProfile(c *gin.Context) {
 	user := c.MustGet("user").(models.UserModel)
-	h.ctx.DB.Preload("Companies").Find(&user)
+	h.ctx.DB.Preload("Companies").Preload("Roles", "company_id = ?", c.MustGet("companyID").(string)).Find(&user)
 
 	c.JSON(200, gin.H{"user": user, "companies": user.Companies, "member": c.MustGet("member").(models.CooperativeMemberModel)})
 }
