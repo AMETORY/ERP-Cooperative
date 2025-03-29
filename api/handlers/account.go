@@ -57,11 +57,16 @@ func (h *AccountHandler) CreateAccountHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "inventory service is not initialized"})
 	}
 	var data models.AccountModel
-	err := c.ShouldBindBodyWithJSON(&data)
+	err := c.ShouldBindJSON(&data)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	companyID := c.MustGet("companyID").(string)
+	userID := c.MustGet("userID").(string)
+	data.CompanyID = &companyID
+	data.UserID = &userID
+	data.IsDeletable = true
 	err = h.financeSrv.AccountService.CreateAccount(&data)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -85,6 +90,20 @@ func (h *AccountHandler) GetAccountHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Account retrieved successfully", "data": data})
 }
 
+func (h *AccountHandler) GetAccountReportHandler(c *gin.Context) {
+	// h.ctx.Request = c.Request
+	// // Implement logic to get an account by ID
+	// if h.financeSrv == nil {
+	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "distributor service is not initialized"})
+	// }
+	// id := c.Param("id")
+	// data, err := h.financeSrv.AccountService.GetAccountReportByID(id)
+	// if err != nil {
+	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	// 	return
+	// }
+	// c.JSON(http.StatusOK, gin.H{"message": "Account retrieved successfully", "data": data})
+}
 func (h *AccountHandler) GetAccountByIdHandler(c *gin.Context) {
 	h.ctx.Request = c.Request
 	// Implement logic to get an account by ID

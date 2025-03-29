@@ -121,6 +121,7 @@ func main() {
 	routes.SetupAccountRoutes(v1, erpContext)
 	routes.SetupRegionalRoutes(v1, erpContext)
 	routes.SetupCommonRoutes(v1, erpContext)
+	routes.SetupTransactionRoutes(v1, erpContext)
 
 	go func() {
 		workers.SendMail(erpContext)

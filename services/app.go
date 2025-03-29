@@ -4,6 +4,7 @@ import (
 	"ametory-cooperative/app_models"
 	"ametory-cooperative/config"
 	"encoding/json"
+	"errors"
 	"log"
 
 	"github.com/AMETORY/ametory-erp-modules/context"
@@ -12,6 +13,7 @@ import (
 	"github.com/AMETORY/ametory-erp-modules/utils"
 	"github.com/go-redis/redis/v8"
 	"gopkg.in/olahol/melody.v1"
+	"gorm.io/gorm"
 )
 
 type AppService struct {
@@ -51,6 +53,7 @@ func (a AppService) GenerateDefaultPermissions() []models.PermissionModel {
 			},
 			"finance": {
 				{"account": cruds},
+				{"transaction": cruds},
 				{"report": cruds},
 				{"bank": cruds},
 			},
@@ -80,6 +83,7 @@ func (a AppService) GenerateAdminPermissions() []models.PermissionModel {
 			},
 			"finance": {
 				{"account": cruds},
+				{"transaction": cruds},
 				{"report": cruds},
 				{"bank": cruds},
 			},
@@ -139,7 +143,11 @@ func (a AppService) generatePermissions(services map[string][]map[string][]strin
 			for key, actions := range module {
 				for _, action := range actions {
 					var permission models.PermissionModel
-					a.ctx.DB.Find(&permission, "name = ?", service+":"+key+":"+action)
+					err := a.ctx.DB.First(&permission, "name = ?", service+":"+key+":"+action).Error
+					if errors.Is(err, gorm.ErrRecordNotFound) {
+						permission.Name = service + ":" + key + ":" + action
+						a.ctx.DB.Create(&permission)
+					}
 					permissions = append(permissions, permission)
 				}
 			}

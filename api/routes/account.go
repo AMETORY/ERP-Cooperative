@@ -19,6 +19,7 @@ func SetupAccountRoutes(r *gin.RouterGroup, erpContext *context.ERPContext) {
 		accountGroup.POST("/create", accountHandler.CreateAccountHandler)
 		accountGroup.GET("/list", accountHandler.GetAccountHandler)
 		accountGroup.GET("/:id", accountHandler.GetAccountByIdHandler)
+		accountGroup.GET("/:id/report", accountHandler.GetAccountReportHandler)
 		accountGroup.PUT("/:id", accountHandler.UpdateAccountHandler)
 		accountGroup.DELETE("/:id", accountHandler.DeleteAccountHandler)
 
