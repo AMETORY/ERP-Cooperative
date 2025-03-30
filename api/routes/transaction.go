@@ -13,10 +13,10 @@ func SetupTransactionRoutes(r *gin.RouterGroup, erpContext *context.ERPContext) 
 	transactionGroup := r.Group("/transaction")
 	transactionGroup.Use(middlewares.AuthMiddleware(erpContext, false))
 	{
-		transactionGroup.GET("/list", transactionHandler.ListTransactions)
-		transactionGroup.GET("/:id", transactionHandler.GetTransaction)
-		transactionGroup.POST("/create", transactionHandler.CreateTransaction)
-		transactionGroup.PUT("/:id", transactionHandler.UpdateTransaction)
-		transactionGroup.DELETE("/:id", transactionHandler.DeleteTransaction)
+		transactionGroup.GET("/list", middlewares.RbacUserMiddleware(erpContext, false, []string{"finance:transaction:read"}), transactionHandler.ListTransactions)
+		transactionGroup.GET("/:id", middlewares.RbacUserMiddleware(erpContext, false, []string{"finance:transaction:read"}), transactionHandler.GetTransaction)
+		transactionGroup.POST("/create", middlewares.RbacUserMiddleware(erpContext, false, []string{"finance:transaction:create"}), transactionHandler.CreateTransaction)
+		transactionGroup.PUT("/:id", middlewares.RbacUserMiddleware(erpContext, false, []string{"finance:transaction:update"}), transactionHandler.UpdateTransaction)
+		transactionGroup.DELETE("/:id", middlewares.RbacUserMiddleware(erpContext, false, []string{"finance:transaction:delete"}), transactionHandler.DeleteTransaction)
 	}
 }

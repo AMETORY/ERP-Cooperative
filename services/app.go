@@ -54,6 +54,7 @@ func (a AppService) GenerateDefaultPermissions() []models.PermissionModel {
 			"finance": {
 				{"account": cruds},
 				{"transaction": cruds},
+				{"journal": cruds},
 				{"report": cruds},
 				{"bank": cruds},
 			},
@@ -84,6 +85,7 @@ func (a AppService) GenerateAdminPermissions() []models.PermissionModel {
 			"finance": {
 				{"account": cruds},
 				{"transaction": cruds},
+				{"journal": cruds},
 				{"report": cruds},
 				{"bank": cruds},
 			},
