@@ -35,7 +35,8 @@ func InitDB(cfg *config.Config) (*gorm.DB, error) {
 	}
 	options := []gorm.Option{}
 	if config.App.Server.Debug {
-		options = append(options, &gorm.Config{Logger: logger.Default.LogMode(logger.Info)})
+		options = append(options, &gorm.Config{
+			Logger: logger.Default.LogMode(logger.Info)})
 	}
 
 	db, err := gorm.Open(dialector, options...)

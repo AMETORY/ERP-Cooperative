@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/AMETORY/ametory-erp-modules/context"
 	"github.com/AMETORY/ametory-erp-modules/finance"
@@ -87,22 +88,37 @@ func (h *AccountHandler) GetAccountHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	newItems := make([]models.AccountModel, 0)
+	items := data.Items.(*[]models.AccountModel)
+	now := time.Now().AddDate(0, 0, 1)
+	for _, item := range *items {
+		debit, credit, _ := h.financeSrv.ReportService.GetAccountBalance(item.ID, nil, &now)
+		switch item.Type {
+		case models.EXPENSE, models.COST, models.CONTRA_LIABILITY, models.CONTRA_EQUITY, models.CONTRA_REVENUE:
+			item.Balance = debit - credit
+		case models.LIABILITY, models.EQUITY, models.REVENUE, models.INCOME, models.CONTRA_ASSET, models.CONTRA_EXPENSE:
+			item.Balance = credit - debit
+		case models.ASSET:
+			item.Balance = debit - credit
+		}
+		newItems = append(newItems, item)
+	}
+
+	*items = newItems
+
 	c.JSON(http.StatusOK, gin.H{"message": "Account retrieved successfully", "data": data})
 }
 
 func (h *AccountHandler) GetAccountReportHandler(c *gin.Context) {
-	// h.ctx.Request = c.Request
-	// // Implement logic to get an account by ID
-	// if h.financeSrv == nil {
-	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "distributor service is not initialized"})
-	// }
-	// id := c.Param("id")
-	// data, err := h.financeSrv.AccountService.GetAccountReportByID(id)
-	// if err != nil {
-	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-	// 	return
-	// }
-	// c.JSON(http.StatusOK, gin.H{"message": "Account retrieved successfully", "data": data})
+	id := c.Param("id")
+	data, err := h.financeSrv.ReportService.GenerateAccountReport(id, *c.Request)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Account report retrieved successfully", "data": data})
 }
 func (h *AccountHandler) GetAccountByIdHandler(c *gin.Context) {
 	h.ctx.Request = c.Request
