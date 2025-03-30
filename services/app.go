@@ -47,6 +47,7 @@ func (a AppService) GenerateDefaultPermissions() []models.PermissionModel {
 				{"customer": cruds},
 				{"vendor": cruds},
 				{"supplier": cruds},
+				{"all": cruds},
 			},
 			"company": {
 				{"company": append(cruds, "approval")},
@@ -86,6 +87,9 @@ func (a AppService) GenerateAdminPermissions() []models.PermissionModel {
 			"auth": {{"user": cruds, "admin": cruds, "rbac": cruds}},
 			"contact": {
 				{"customer": cruds},
+				{"vendor": cruds},
+				{"supplier": cruds},
+				{"all": cruds},
 			},
 			"company": {
 				{"company": append(cruds, "approval")},

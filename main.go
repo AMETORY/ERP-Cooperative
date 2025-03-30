@@ -12,6 +12,7 @@ import (
 
 	"github.com/AMETORY/ametory-erp-modules/auth"
 	"github.com/AMETORY/ametory-erp-modules/company"
+	"github.com/AMETORY/ametory-erp-modules/contact"
 	"github.com/AMETORY/ametory-erp-modules/context"
 	"github.com/AMETORY/ametory-erp-modules/cooperative"
 	"github.com/AMETORY/ametory-erp-modules/distribution"
@@ -107,6 +108,9 @@ func main() {
 	inventorySrv = inventory.NewInventoryService(erpContext)
 	erpContext.InventoryService = inventorySrv
 
+	contactSrv := contact.NewContactService(erpContext, companyService)
+	erpContext.ContactService = contactSrv
+
 	appService := services.NewAppService(erpContext, cfg, redisClient, websocket)
 	erpContext.AppService = appService
 
@@ -130,6 +134,8 @@ func main() {
 	routes.SetupTransactionRoutes(v1, erpContext)
 	routes.SetupJournalRoutes(v1, erpContext)
 	routes.SetupTaxRoutes(v1, erpContext)
+	routes.SetContactRoutes(v1, erpContext)
+	routes.SetupSalesRoutes(v1, erpContext)
 
 	go func() {
 		workers.SendMail(erpContext)
