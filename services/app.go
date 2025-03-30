@@ -51,12 +51,20 @@ func (a AppService) GenerateDefaultPermissions() []models.PermissionModel {
 			"company": {
 				{"company": append(cruds, "approval")},
 			},
+			"order": {
+				{"sales": cruds},
+			},
+			"inventory": {
+				{"purchase": cruds},
+				{"product": cruds},
+			},
 			"finance": {
 				{"account": cruds},
 				{"transaction": cruds},
 				{"journal": cruds},
 				{"report": cruds},
 				{"bank": cruds},
+				{"tax": cruds},
 			},
 			"cooperative": {
 				{"cooperative_member": append(cruds, "approval")},
@@ -82,12 +90,20 @@ func (a AppService) GenerateAdminPermissions() []models.PermissionModel {
 			"company": {
 				{"company": append(cruds, "approval")},
 			},
+			"order": {
+				{"sales": cruds},
+			},
+			"inventory": {
+				{"purchase": cruds},
+				{"product": cruds},
+			},
 			"finance": {
 				{"account": cruds},
 				{"transaction": cruds},
 				{"journal": cruds},
 				{"report": cruds},
 				{"bank": cruds},
+				{"tax": cruds},
 			},
 			"cooperative": {
 				{"cooperative_member": append(cruds, "approval")},

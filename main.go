@@ -101,6 +101,12 @@ func main() {
 	distributionSrv := distribution.NewDistributionService(erpContext, auditTrailSrv, inventorySrv, orderSrv)
 	erpContext.DistributionService = distributionSrv
 
+	orderSrv = order.NewOrderService(erpContext)
+	erpContext.OrderService = orderSrv
+
+	inventorySrv = inventory.NewInventoryService(erpContext)
+	erpContext.InventoryService = inventorySrv
+
 	appService := services.NewAppService(erpContext, cfg, redisClient, websocket)
 	erpContext.AppService = appService
 
@@ -123,6 +129,7 @@ func main() {
 	routes.SetupCommonRoutes(v1, erpContext)
 	routes.SetupTransactionRoutes(v1, erpContext)
 	routes.SetupJournalRoutes(v1, erpContext)
+	routes.SetupTaxRoutes(v1, erpContext)
 
 	go func() {
 		workers.SendMail(erpContext)
