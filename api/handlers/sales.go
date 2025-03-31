@@ -119,3 +119,33 @@ func (s *SalesHandler) DeleteSalesHandler(c *gin.Context) {
 	}
 	c.JSON(200, gin.H{"message": "Sales deleted successfully"})
 }
+
+func (s *SalesHandler) GetItemsHandler(c *gin.Context) {
+	// id := c.Param("id")
+	// items, err := s.orderSrv.SalesService.GetItems(id)
+	// if err != nil {
+	// 	c.JSON(500, gin.H{"error": err.Error()})
+	// 	return
+	// }
+	// c.JSON(200, gin.H{"data": items, "message": "Items retrieved successfully"})
+}
+func (s *SalesHandler) AddItemHandler(c *gin.Context) {
+	id := c.Param("id")
+	var input models.SalesItemModel
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+	sales, err := s.orderSrv.SalesService.GetSalesByID(id)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	err = s.orderSrv.SalesService.AddItem(sales, &input)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(201, gin.H{"message": "Item added successfully"})
+}
