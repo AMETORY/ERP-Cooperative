@@ -136,6 +136,8 @@ func main() {
 	routes.SetupTaxRoutes(v1, erpContext)
 	routes.SetContactRoutes(v1, erpContext)
 	routes.SetupSalesRoutes(v1, erpContext)
+	routes.SetupProductRoutes(v1, erpContext)
+	routes.SetupProductCategoryRoutes(v1, erpContext)
 
 	go func() {
 		workers.SendMail(erpContext)

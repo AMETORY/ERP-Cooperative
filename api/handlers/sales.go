@@ -79,7 +79,10 @@ func (s *SalesHandler) CreateSalesHandler(c *gin.Context) {
 		PaymentTerms: input.PaymentTerms,
 		ContactID:    input.ContactID,
 		Type:         input.Type,
+		DocumentType: input.DocumentType,
 		ContactData:  string(b),
+		DeliveryData: "{}",
+		TaxBreakdown: "{}",
 	}
 	companyID := c.MustGet("companyID").(string)
 	userID := c.MustGet("userID").(string)
@@ -121,13 +124,14 @@ func (s *SalesHandler) DeleteSalesHandler(c *gin.Context) {
 }
 
 func (s *SalesHandler) GetItemsHandler(c *gin.Context) {
-	// id := c.Param("id")
-	// items, err := s.orderSrv.SalesService.GetItems(id)
-	// if err != nil {
-	// 	c.JSON(500, gin.H{"error": err.Error()})
-	// 	return
-	// }
-	// c.JSON(200, gin.H{"data": items, "message": "Items retrieved successfully"})
+	id := c.Param("id")
+
+	items, err := s.orderSrv.SalesService.GetItems(id)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"data": items, "message": "Items retrieved successfully"})
 }
 func (s *SalesHandler) AddItemHandler(c *gin.Context) {
 	id := c.Param("id")
@@ -147,5 +151,27 @@ func (s *SalesHandler) AddItemHandler(c *gin.Context) {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(201, gin.H{"message": "Item added successfully"})
+	c.JSON(201, gin.H{"message": "Item added successfully", "data": input})
+}
+
+func (s *SalesHandler) UpdateItemHandler(c *gin.Context) {
+	id := c.Param("id")
+	itemID := c.Param("itemID")
+	var input models.SalesItemModel
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+	sales, err := s.orderSrv.SalesService.GetSalesByID(id)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	err = s.orderSrv.SalesService.UpdateItem(sales, itemID, &input)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"message": "Item updated successfully", "data": input})
 }
