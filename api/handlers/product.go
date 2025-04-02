@@ -166,3 +166,22 @@ func (p *ProductHandler) DeleteProductHandler(c *gin.Context) {
 	}
 	c.JSON(200, gin.H{"message": "Product deleted successfully"})
 }
+
+func (h *ProductHandler) AddPriceProductHandler(c *gin.Context) {
+	h.ctx.Request = c.Request
+	// Implement logic to update an product
+
+	var data models.PriceModel
+	err := c.ShouldBindBodyWithJSON(&data)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	id := c.Param("id")
+	_, err = h.inventorySrv.ProductService.GetProductByID(id, c.Request)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	}
+	h.inventorySrv.ProductService.AddPriceToProduct(id, &data)
+	c.JSON(http.StatusOK, gin.H{"message": "Product updated successfully"})
+}

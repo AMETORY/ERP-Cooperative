@@ -139,6 +139,8 @@ func main() {
 	routes.SetupProductRoutes(v1, erpContext)
 	routes.SetupProductCategoryRoutes(v1, erpContext)
 	routes.SetupPriceCategoryRoutes(v1, erpContext)
+	routes.SetupProductAttributeRoutes(v1, erpContext)
+	routes.SetupWarehouseRoutes(v1, erpContext)
 
 	go func() {
 		workers.SendMail(erpContext)

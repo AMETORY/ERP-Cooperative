@@ -60,6 +60,7 @@ func (a AppService) GenerateDefaultPermissions() []models.PermissionModel {
 				{"product": cruds},
 				{"product_category": cruds},
 				{"price_category": cruds},
+				{"product_attribute": cruds},
 				{"warehouse": cruds},
 			},
 			"finance": {
@@ -104,6 +105,9 @@ func (a AppService) GenerateAdminPermissions() []models.PermissionModel {
 				{"purchase": cruds},
 				{"product": cruds},
 				{"product_category": cruds},
+				{"price_category": cruds},
+				{"product_attribute": cruds},
+				{"warehouse": cruds},
 			},
 			"finance": {
 				{"account": cruds},
