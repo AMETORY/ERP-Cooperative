@@ -59,6 +59,8 @@ func (a AppService) GenerateDefaultPermissions() []models.PermissionModel {
 				{"purchase": cruds},
 				{"product": cruds},
 				{"product_category": cruds},
+				{"price_category": cruds},
+				{"warehouse": cruds},
 			},
 			"finance": {
 				{"account": cruds},

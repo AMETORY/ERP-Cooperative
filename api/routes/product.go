@@ -15,6 +15,10 @@ func SetupProductRoutes(r *gin.RouterGroup, erpContext *context.ERPContext) {
 	{
 		productGroup.GET("/list", middlewares.RbacUserMiddleware(erpContext, false, []string{"inventory:product:read"}), productHandler.ListProductsHandler)
 		productGroup.GET("/:id", middlewares.RbacUserMiddleware(erpContext, false, []string{"inventory:product:read"}), productHandler.GetProductHandler)
+		productGroup.GET("/:id/variant", middlewares.RbacUserMiddleware(erpContext, false, []string{"inventory:product:read"}), productHandler.GetProductVariantHandler)
+		productGroup.POST("/:id/variant", middlewares.RbacUserMiddleware(erpContext, false, []string{"inventory:product:read"}), productHandler.CreateProductVariantHandler)
+		productGroup.GET("/:id/discount", middlewares.RbacUserMiddleware(erpContext, false, []string{"inventory:product:read"}), productHandler.GetProductDiscountHandler)
+		productGroup.POST("/:id/discount", middlewares.RbacUserMiddleware(erpContext, false, []string{"inventory:product:update"}), productHandler.AddDiscountHandler)
 		productGroup.POST("/create", middlewares.RbacUserMiddleware(erpContext, false, []string{"inventory:product:create"}), productHandler.CreateProductHandler)
 		productGroup.PUT("/:id", middlewares.RbacUserMiddleware(erpContext, false, []string{"inventory:product:update"}), productHandler.UpdateProductHandler)
 		productGroup.DELETE("/:id", middlewares.RbacUserMiddleware(erpContext, false, []string{"inventory:product:delete"}), productHandler.DeleteProductHandler)
