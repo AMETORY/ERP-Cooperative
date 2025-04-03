@@ -17,6 +17,7 @@ func SetupProductRoutes(r *gin.RouterGroup, erpContext *context.ERPContext) {
 		productGroup.GET("/:id", middlewares.RbacUserMiddleware(erpContext, false, []string{"inventory:product:read"}), productHandler.GetProductHandler)
 		productGroup.GET("/:id/variant", middlewares.RbacUserMiddleware(erpContext, false, []string{"inventory:product:read"}), productHandler.GetProductVariantHandler)
 		productGroup.POST("/:id/variant", middlewares.RbacUserMiddleware(erpContext, false, []string{"inventory:product:read"}), productHandler.CreateProductVariantHandler)
+		productGroup.PUT("/:id/unit", middlewares.RbacUserMiddleware(erpContext, false, []string{"inventory:product:update"}), productHandler.AddProductUnitHandler)
 		productGroup.GET("/:id/discount", middlewares.RbacUserMiddleware(erpContext, false, []string{"inventory:product:read"}), productHandler.GetProductDiscountHandler)
 		productGroup.POST("/:id/discount", middlewares.RbacUserMiddleware(erpContext, false, []string{"inventory:product:update"}), productHandler.AddDiscountHandler)
 		productGroup.POST("/create", middlewares.RbacUserMiddleware(erpContext, false, []string{"inventory:product:create"}), productHandler.CreateProductHandler)

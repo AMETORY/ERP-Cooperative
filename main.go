@@ -141,6 +141,8 @@ func main() {
 	routes.SetupPriceCategoryRoutes(v1, erpContext)
 	routes.SetupProductAttributeRoutes(v1, erpContext)
 	routes.SetupWarehouseRoutes(v1, erpContext)
+	routes.SetupUnitRoutes(v1, erpContext)
+	routes.SetupPaymentTermRoutes(v1, erpContext)
 
 	go func() {
 		workers.SendMail(erpContext)
@@ -153,6 +155,15 @@ func main() {
 	}
 	if os.Getenv("DEFAULT_CATEGORY") != "" {
 		appService.GenerateDefaultCategories()
+
+	}
+
+	if os.Getenv("PAYMENT_TERMS") != "" {
+		err := orderSrv.PaymentTermService.InitPaymentTerms()
+		if err != nil {
+			panic(err) // TODO: handle this properly
+		}
+
 	}
 
 	r.Run(":" + config.App.Server.Port)

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"ametory-cooperative/objects"
 	"net/http"
 
 	"github.com/AMETORY/ametory-erp-modules/context"
@@ -45,6 +46,31 @@ func (p *ProductHandler) GetProductVariantHandler(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Product variant retrieved successfully", "data": data})
+}
+func (p *ProductHandler) AddProductUnitHandler(c *gin.Context) {
+	id := c.Param("id")
+	product, err := p.inventorySrv.ProductService.GetProductByID(id, c.Request)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	}
+	var input objects.ProductUnitRequest
+	err = c.ShouldBindBodyWithJSON(&input)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	err = p.inventorySrv.ProductService.AddProductUnit(&models.ProductUnitData{
+		ProductModelID: &product.ID,
+		Value:          input.Value,
+		UnitModelID:    &input.UnitID,
+		IsDefault:      input.IsDefault,
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Product unit added successfully"})
 }
 func (p *ProductHandler) CreateProductVariantHandler(c *gin.Context) {
 	p.ctx.Request = c.Request

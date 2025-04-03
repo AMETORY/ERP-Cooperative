@@ -69,20 +69,34 @@ func (s *SalesHandler) CreateSalesHandler(c *gin.Context) {
 	b, _ := json.Marshal(*contact)
 
 	var data models.SalesModel = models.SalesModel{
-		SalesNumber:  input.SalesNumber,
-		Code:         utils.RandString(8, false),
-		Description:  input.Description,
-		Notes:        input.Notes,
-		Status:       "DRAFT",
-		SalesDate:    input.SalesDate,
-		DueDate:      input.DueDate,
-		PaymentTerms: input.PaymentTerms,
-		ContactID:    input.ContactID,
-		Type:         input.Type,
-		DocumentType: input.DocumentType,
-		ContactData:  string(b),
-		DeliveryData: "{}",
-		TaxBreakdown: "{}",
+		SalesNumber:      input.SalesNumber,
+		Code:             utils.RandString(8, false),
+		Description:      input.Description,
+		Notes:            input.Notes,
+		Status:           "DRAFT",
+		SalesDate:        input.SalesDate,
+		DueDate:          input.DueDate,
+		PaymentTerms:     input.PaymentTerms,
+		ContactID:        input.ContactID,
+		Type:             input.Type,
+		DocumentType:     input.DocumentType,
+		ContactData:      string(b),
+		DeliveryData:     "{}",
+		TaxBreakdown:     "{}",
+		RefID:            input.RefID,
+		RefType:          input.RefType,
+		SecondaryRefID:   input.SecondaryRefID,
+		SecondaryRefType: input.SecondaryRefType,
+		PaymentTermsCode: input.PaymentTermsCode,
+		TermCondition:    input.TermCondition,
+	}
+	if input.DeliveryID != nil && input.DeliveryData != "" {
+		data.DeliveryID = input.DeliveryID
+		data.DeliveryData = input.DeliveryData
+	}
+
+	if input.Status != "" {
+		data.Status = input.Status
 	}
 	companyID := c.MustGet("companyID").(string)
 	userID := c.MustGet("userID").(string)
@@ -93,6 +107,21 @@ func (s *SalesHandler) CreateSalesHandler(c *gin.Context) {
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
+	}
+	if len(input.Items) > 0 {
+		items := make([]models.SalesItemModel, len(input.Items))
+		for _, item := range input.Items {
+			item.SalesID = &data.ID
+			item.ID = utils.Uuid()
+			err = s.orderSrv.SalesService.AddItem(&data, &item)
+			if err != nil {
+				c.JSON(500, gin.H{"error": err.Error()})
+				return
+			}
+			items = append(items, item)
+		}
+		data.Items = items
+		s.orderSrv.SalesService.UpdateTotal(&data)
 	}
 	c.JSON(201, gin.H{"message": "Sales created successfully", "data": data})
 }
@@ -152,6 +181,22 @@ func (s *SalesHandler) AddItemHandler(c *gin.Context) {
 		return
 	}
 	c.JSON(201, gin.H{"message": "Item added successfully", "data": input})
+}
+func (s *SalesHandler) DeleteItemHandler(c *gin.Context) {
+	id := c.Param("id")
+	itemId := c.Param("itemId")
+
+	sales, err := s.orderSrv.SalesService.GetSalesByID(id)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	err = s.orderSrv.SalesService.DeleteItem(sales, itemId)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(201, gin.H{"message": "Item delete successfully"})
 }
 
 func (s *SalesHandler) UpdateItemHandler(c *gin.Context) {

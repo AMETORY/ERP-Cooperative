@@ -53,7 +53,7 @@ func (a AppService) GenerateDefaultPermissions() []models.PermissionModel {
 				{"company": append(cruds, "approval")},
 			},
 			"order": {
-				{"sales": cruds},
+				{"sales": append(cruds, "approval", "publish")},
 			},
 			"inventory": {
 				{"purchase": cruds},
@@ -62,6 +62,7 @@ func (a AppService) GenerateDefaultPermissions() []models.PermissionModel {
 				{"price_category": cruds},
 				{"product_attribute": cruds},
 				{"warehouse": cruds},
+				{"unit": cruds},
 			},
 			"finance": {
 				{"account": cruds},
@@ -99,7 +100,7 @@ func (a AppService) GenerateAdminPermissions() []models.PermissionModel {
 				{"company": append(cruds, "approval")},
 			},
 			"order": {
-				{"sales": cruds},
+				{"sales": append(cruds, "approval", "publish")},
 			},
 			"inventory": {
 				{"purchase": cruds},
@@ -108,6 +109,7 @@ func (a AppService) GenerateAdminPermissions() []models.PermissionModel {
 				{"price_category": cruds},
 				{"product_attribute": cruds},
 				{"warehouse": cruds},
+				{"unit": cruds},
 			},
 			"finance": {
 				{"account": cruds},
