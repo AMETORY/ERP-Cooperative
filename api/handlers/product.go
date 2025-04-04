@@ -211,3 +211,15 @@ func (h *ProductHandler) AddPriceProductHandler(c *gin.Context) {
 	h.inventorySrv.ProductService.AddPriceToProduct(id, &data)
 	c.JSON(http.StatusOK, gin.H{"message": "Product updated successfully"})
 }
+func (h *ProductHandler) DeletePriceProductHandler(c *gin.Context) {
+	h.ctx.Request = c.Request
+	// Implement logic to update an product
+
+	id := c.Param("id")
+	priceId := c.Param("priceId")
+	err := h.inventorySrv.ProductService.DeletePriceOfProduct(id, priceId)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Product updated successfully"})
+}

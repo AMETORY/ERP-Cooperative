@@ -3,6 +3,7 @@ package handlers
 import (
 	"ametory-cooperative/objects"
 	"encoding/json"
+	"time"
 
 	"github.com/AMETORY/ametory-erp-modules/contact"
 	"github.com/AMETORY/ametory-erp-modules/context"
@@ -126,6 +127,28 @@ func (s *SalesHandler) CreateSalesHandler(c *gin.Context) {
 	c.JSON(201, gin.H{"message": "Sales created successfully", "data": data})
 }
 
+func (s *SalesHandler) PostInvoiceHandler(c *gin.Context) {
+	id := c.Param("id")
+
+	var input struct {
+		Sales           models.SalesModel `json:"sales"`
+		TransactionDate time.Time         `json:"transaction_date"`
+	}
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	userID := c.MustGet("userID").(string)
+	err = s.orderSrv.SalesService.PostInvoice(id, &input.Sales, userID, input.TransactionDate)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(201, gin.H{"message": "Invoice Posted successfully"})
+}
+
 func (s *SalesHandler) UpdateSalesHandler(c *gin.Context) {
 	id := c.Param("id")
 	var input models.SalesModel
@@ -182,6 +205,7 @@ func (s *SalesHandler) AddItemHandler(c *gin.Context) {
 	}
 	c.JSON(201, gin.H{"message": "Item added successfully", "data": input})
 }
+
 func (s *SalesHandler) DeleteItemHandler(c *gin.Context) {
 	id := c.Param("id")
 	itemId := c.Param("itemId")

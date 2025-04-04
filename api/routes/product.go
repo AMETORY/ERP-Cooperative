@@ -23,6 +23,7 @@ func SetupProductRoutes(r *gin.RouterGroup, erpContext *context.ERPContext) {
 		productGroup.POST("/create", middlewares.RbacUserMiddleware(erpContext, false, []string{"inventory:product:create"}), productHandler.CreateProductHandler)
 		productGroup.PUT("/:id", middlewares.RbacUserMiddleware(erpContext, false, []string{"inventory:product:update"}), productHandler.UpdateProductHandler)
 		productGroup.PUT("/:id/price", middlewares.RbacUserMiddleware(erpContext, false, []string{"inventory:product:update"}), productHandler.AddPriceProductHandler)
+		productGroup.DELETE("/:id/price/:priceId", middlewares.RbacUserMiddleware(erpContext, false, []string{"inventory:product:update"}), productHandler.DeletePriceProductHandler)
 		productGroup.DELETE("/:id", middlewares.RbacUserMiddleware(erpContext, false, []string{"inventory:product:delete"}), productHandler.DeleteProductHandler)
 	}
 }
