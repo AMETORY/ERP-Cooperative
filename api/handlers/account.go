@@ -95,7 +95,7 @@ func (h *AccountHandler) GetAccountHandler(c *gin.Context) {
 	for _, item := range *items {
 		debit, credit, _ := h.financeSrv.ReportService.GetAccountBalance(item.ID, nil, &now)
 		switch item.Type {
-		case models.EXPENSE, models.COST, models.CONTRA_LIABILITY, models.CONTRA_EQUITY, models.CONTRA_REVENUE:
+		case models.EXPENSE, models.COST, models.CONTRA_LIABILITY, models.CONTRA_EQUITY, models.CONTRA_REVENUE, models.RECEIVABLE:
 			item.Balance = debit - credit
 		case models.LIABILITY, models.EQUITY, models.REVENUE, models.INCOME, models.CONTRA_ASSET, models.CONTRA_EXPENSE:
 			item.Balance = credit - debit

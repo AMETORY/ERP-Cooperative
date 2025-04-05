@@ -7,55 +7,55 @@ import (
 
 	"github.com/AMETORY/ametory-erp-modules/contact"
 	"github.com/AMETORY/ametory-erp-modules/context"
-	"github.com/AMETORY/ametory-erp-modules/order"
+	"github.com/AMETORY/ametory-erp-modules/inventory"
 	"github.com/AMETORY/ametory-erp-modules/shared/models"
 	"github.com/AMETORY/ametory-erp-modules/utils"
 	"github.com/gin-gonic/gin"
 )
 
-type SalesHandler struct {
-	ctx        *context.ERPContext
-	orderSrv   *order.OrderService
-	contactSrv *contact.ContactService
+type PurchaseHandler struct {
+	ctx          *context.ERPContext
+	inventorySrv *inventory.InventoryService
+	contactSrv   *contact.ContactService
 }
 
-func NewSalesHandler(ctx *context.ERPContext) *SalesHandler {
-	orderSrv, ok := ctx.OrderService.(*order.OrderService)
+func NewPurchaseHandler(ctx *context.ERPContext) *PurchaseHandler {
+	inventorySrv, ok := ctx.InventoryService.(*inventory.InventoryService)
 	if !ok {
-		panic("order service is not found")
+		panic("inventory service is not found")
 	}
 	contactSrv, ok := ctx.ContactService.(*contact.ContactService)
 	if !ok {
 		panic("contact service is not found")
 	}
-	return &SalesHandler{
-		ctx:        ctx,
-		orderSrv:   orderSrv,
-		contactSrv: contactSrv,
+	return &PurchaseHandler{
+		ctx:          ctx,
+		inventorySrv: inventorySrv,
+		contactSrv:   contactSrv,
 	}
 }
 
-func (s *SalesHandler) GetSalesHandler(c *gin.Context) {
-	sales, err := s.orderSrv.SalesService.GetSales(*c.Request, c.Query("search"))
+func (s *PurchaseHandler) GetPurchaseHandler(c *gin.Context) {
+	purchase, err := s.inventorySrv.PurchaseService.GetPurchases(*c.Request, c.Query("search"))
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(200, gin.H{"data": sales, "message": "Sales retrieved successfully"})
+	c.JSON(200, gin.H{"data": purchase, "message": "Purchase retrieved successfully"})
 }
 
-func (s *SalesHandler) GetSalesByIdHandler(c *gin.Context) {
+func (s *PurchaseHandler) GetPurchaseByIdHandler(c *gin.Context) {
 	id := c.Param("id")
-	sales, err := s.orderSrv.SalesService.GetSalesByID(id)
+	purchase, err := s.inventorySrv.PurchaseService.GetPurchaseByID(id)
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(200, gin.H{"data": sales, "message": "Sales retrieved successfully"})
+	c.JSON(200, gin.H{"data": purchase, "message": "Purchase retrieved successfully"})
 }
 
-func (s *SalesHandler) CreateSalesHandler(c *gin.Context) {
-	var input objects.SalesRequest
+func (s *PurchaseHandler) CreatePurchaseHandler(c *gin.Context) {
+	var input objects.PurchaseRequest
 	err := c.ShouldBindJSON(&input)
 	if err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
@@ -69,31 +69,26 @@ func (s *SalesHandler) CreateSalesHandler(c *gin.Context) {
 
 	b, _ := json.Marshal(*contact)
 
-	var data models.SalesModel = models.SalesModel{
-		SalesNumber:      input.SalesNumber,
+	var data models.PurchaseOrderModel = models.PurchaseOrderModel{
+		PurchaseNumber:   input.PurchaseNumber,
 		Code:             utils.RandString(8, false),
 		Description:      input.Description,
 		Notes:            input.Notes,
 		Status:           "DRAFT",
-		SalesDate:        input.SalesDate,
+		PurchaseDate:     input.PurchaseDate,
 		DueDate:          input.DueDate,
 		PaymentTerms:     input.PaymentTerms,
 		ContactID:        input.ContactID,
 		Type:             input.Type,
 		DocumentType:     input.DocumentType,
 		ContactData:      string(b),
-		DeliveryData:     "{}",
-		TaxBreakdown:     "{}",
 		RefID:            input.RefID,
 		RefType:          input.RefType,
 		SecondaryRefID:   input.SecondaryRefID,
 		SecondaryRefType: input.SecondaryRefType,
 		PaymentTermsCode: input.PaymentTermsCode,
 		TermCondition:    input.TermCondition,
-	}
-	if input.DeliveryID != nil && input.DeliveryData != "" {
-		data.DeliveryID = input.DeliveryID
-		data.DeliveryData = input.DeliveryData
+		TaxBreakdown:     "{}",
 	}
 
 	if input.Status != "" {
@@ -110,11 +105,11 @@ func (s *SalesHandler) CreateSalesHandler(c *gin.Context) {
 		return
 	}
 	if len(input.Items) > 0 {
-		items := make([]models.SalesItemModel, len(input.Items))
+		items := make([]models.PurchaseOrderItemModel, len(input.Items))
 		for _, item := range input.Items {
-			item.SalesID = &data.ID
+			item.PurchaseID = &data.ID
 			item.ID = utils.Uuid()
-			err = s.orderSrv.SalesService.AddItem(&data, &item)
+			err = s.inventorySrv.PurchaseService.AddItem(&data, &item)
 			if err != nil {
 				c.JSON(500, gin.H{"error": err.Error()})
 				return
@@ -122,17 +117,17 @@ func (s *SalesHandler) CreateSalesHandler(c *gin.Context) {
 			items = append(items, item)
 		}
 		data.Items = items
-		s.orderSrv.SalesService.UpdateTotal(&data)
+		s.inventorySrv.PurchaseService.UpdateTotal(&data)
 	}
-	c.JSON(201, gin.H{"message": "Sales created successfully", "data": data})
+	c.JSON(200, gin.H{"message": "Purchase created successfully", "data": data})
 }
 
-func (s *SalesHandler) PostInvoiceHandler(c *gin.Context) {
+func (s *PurchaseHandler) PostPurchaseHandler(c *gin.Context) {
 	id := c.Param("id")
 
 	var input struct {
-		Sales           models.SalesModel `json:"sales"`
-		TransactionDate time.Time         `json:"transaction_date"`
+		Purchase        models.PurchaseOrderModel `json:"purchase"`
+		TransactionDate time.Time                 `json:"transaction_date"`
 	}
 	err := c.ShouldBindJSON(&input)
 	if err != nil {
@@ -141,84 +136,83 @@ func (s *SalesHandler) PostInvoiceHandler(c *gin.Context) {
 	}
 
 	userID := c.MustGet("userID").(string)
-	err = s.orderSrv.SalesService.PostInvoice(id, &input.Sales, userID, input.TransactionDate)
+	err = s.inventorySrv.PurchaseService.PostPurchase(id, &input.Purchase, userID, input.TransactionDate)
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
 	c.JSON(201, gin.H{"message": "Invoice Posted successfully"})
 }
-
-func (s *SalesHandler) PublishSalesHandler(c *gin.Context) {
+func (s *PurchaseHandler) PublishPurchaseHandler(c *gin.Context) {
 	id := c.Param("id")
-	sales, err := s.orderSrv.SalesService.GetSalesByID(id)
+	purchase, err := s.inventorySrv.PurchaseService.GetPurchaseByID(id)
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
 	now := time.Now()
 	userID := c.MustGet("userID").(string)
-	sales.PublishedAt = &now
-	sales.PublishedByID = &userID
-	sales.Status = "RELEASED"
-	err = s.orderSrv.SalesService.UpdateSales(id, sales)
+	purchase.PublishedAt = &now
+	purchase.PublishedByID = &userID
+	purchase.Status = "RELEASED"
+	err = s.inventorySrv.PurchaseService.UpdatePurchase(id, purchase)
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(200, gin.H{"data": sales, "message": "Purchase retrieved successfully"})
+	c.JSON(200, gin.H{"data": purchase, "message": "Purchase retrieved successfully"})
 }
 
-func (s *SalesHandler) UpdateSalesHandler(c *gin.Context) {
+func (s *PurchaseHandler) UpdatePurchaseHandler(c *gin.Context) {
 	id := c.Param("id")
-	var input models.SalesModel
+	var input models.PurchaseOrderModel
 	err := c.ShouldBindJSON(&input)
 	if err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
-	err = s.orderSrv.SalesService.UpdateSales(id, &input)
+	err = s.inventorySrv.PurchaseService.UpdatePurchase(id, &input)
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(200, gin.H{"message": "Sales updated successfully"})
+	c.JSON(200, gin.H{"message": "Purchase updated successfully"})
 }
 
-func (s *SalesHandler) DeleteSalesHandler(c *gin.Context) {
+func (s *PurchaseHandler) DeletePurchaseHandler(c *gin.Context) {
 	id := c.Param("id")
-	err := s.orderSrv.SalesService.DeleteSales(id)
+	err := s.inventorySrv.PurchaseService.DeletePurchase(id)
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(200, gin.H{"message": "Sales deleted successfully"})
+	c.JSON(200, gin.H{"message": "Purchase deleted successfully"})
 }
 
-func (s *SalesHandler) GetItemsHandler(c *gin.Context) {
+func (s *PurchaseHandler) GetItemsHandler(c *gin.Context) {
 	id := c.Param("id")
 
-	items, err := s.orderSrv.SalesService.GetItems(id)
+	items, err := s.inventorySrv.PurchaseService.GetItems(id)
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
 	c.JSON(200, gin.H{"data": items, "message": "Items retrieved successfully"})
 }
-func (s *SalesHandler) AddItemHandler(c *gin.Context) {
+func (s *PurchaseHandler) AddItemHandler(c *gin.Context) {
 	id := c.Param("id")
-	var input models.SalesItemModel
+	var input models.PurchaseOrderItemModel
 	err := c.ShouldBindJSON(&input)
 	if err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
-	sales, err := s.orderSrv.SalesService.GetSalesByID(id)
+	purchase, err := s.inventorySrv.PurchaseService.GetPurchaseByID(id)
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
-	err = s.orderSrv.SalesService.AddItem(sales, &input)
+	err = s.inventorySrv.PurchaseService.AddItem(purchase, &input)
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
@@ -226,16 +220,16 @@ func (s *SalesHandler) AddItemHandler(c *gin.Context) {
 	c.JSON(201, gin.H{"message": "Item added successfully", "data": input})
 }
 
-func (s *SalesHandler) DeleteItemHandler(c *gin.Context) {
+func (s *PurchaseHandler) DeleteItemHandler(c *gin.Context) {
 	id := c.Param("id")
 	itemId := c.Param("itemId")
 
-	sales, err := s.orderSrv.SalesService.GetSalesByID(id)
+	purchase, err := s.inventorySrv.PurchaseService.GetPurchaseByID(id)
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
-	err = s.orderSrv.SalesService.DeleteItem(sales, itemId)
+	err = s.inventorySrv.PurchaseService.DeleteItem(purchase, itemId)
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
@@ -243,21 +237,21 @@ func (s *SalesHandler) DeleteItemHandler(c *gin.Context) {
 	c.JSON(201, gin.H{"message": "Item delete successfully"})
 }
 
-func (s *SalesHandler) UpdateItemHandler(c *gin.Context) {
+func (s *PurchaseHandler) UpdateItemHandler(c *gin.Context) {
 	id := c.Param("id")
 	itemID := c.Param("itemID")
-	var input models.SalesItemModel
+	var input models.PurchaseOrderItemModel
 	err := c.ShouldBindJSON(&input)
 	if err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
-	sales, err := s.orderSrv.SalesService.GetSalesByID(id)
+	purchase, err := s.inventorySrv.PurchaseService.GetPurchaseByID(id)
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
-	err = s.orderSrv.SalesService.UpdateItem(sales, itemID, &input)
+	err = s.inventorySrv.PurchaseService.UpdateItem(purchase, itemID, &input)
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return

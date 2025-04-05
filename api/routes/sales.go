@@ -19,6 +19,7 @@ func SetupSalesRoutes(r *gin.RouterGroup, erpContext *context.ERPContext) {
 		salesGroup.PUT("/:id", middlewares.RbacUserMiddleware(erpContext, false, []string{"sales:sales:update"}), salesHandler.UpdateSalesHandler)
 		salesGroup.PUT("/:id/add-item", middlewares.RbacUserMiddleware(erpContext, false, []string{"sales:sales:update"}), salesHandler.AddItemHandler)
 		salesGroup.PUT("/:id/post", middlewares.RbacUserMiddleware(erpContext, false, []string{"sales:sales:update"}), salesHandler.PostInvoiceHandler)
+		salesGroup.PUT("/:id/publish", middlewares.RbacUserMiddleware(erpContext, false, []string{"sales:sales:update"}), salesHandler.PublishSalesHandler)
 		salesGroup.DELETE("/:id/delete-item/:itemId", middlewares.RbacUserMiddleware(erpContext, false, []string{"sales:sales:update"}), salesHandler.DeleteItemHandler)
 		salesGroup.PUT("/:id/update-item/:itemId", middlewares.RbacUserMiddleware(erpContext, false, []string{"sales:sales:update"}), salesHandler.UpdateItemHandler)
 		salesGroup.GET("/:id/items", middlewares.RbacUserMiddleware(erpContext, false, []string{"sales:sales:read"}), salesHandler.GetItemsHandler)
