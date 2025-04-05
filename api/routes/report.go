@@ -15,5 +15,7 @@ func SetupReportRoutes(r *gin.RouterGroup, erpContext *context.ERPContext) {
 	{
 		reportGroup.POST("/cogs", reportHandler.GetCogsHandler)
 		reportGroup.POST("/profit-loss", reportHandler.GetProfitLossHandler)
+		reportGroup.POST("/balance-sheet", reportHandler.GetBalanceSheetHandler)
+		reportGroup.POST("/capital-change", reportHandler.CapitalChangeHandler)
 	}
 }

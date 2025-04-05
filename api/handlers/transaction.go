@@ -55,19 +55,20 @@ func (h *TransactionHandler) CreateTransaction(c *gin.Context) {
 	companyID := c.MustGet("companyID").(string)
 	userID := c.MustGet("userID").(string)
 	var transaction models.TransactionModel = models.TransactionModel{
-		SourceID:      &input.SourceID,
-		DestinationID: &input.DestinationID,
-		Description:   input.Description,
-		Date:          input.Date,
-		CompanyID:     &companyID,
-		UserID:        &userID,
-		IsIncome:      input.IsIncome,
-		IsExpense:     input.IsExpense,
-		IsEquity:      input.IsEquity,
-		IsTransfer:    input.IsTransfer,
-		AccountID:     input.AccountID,
-		Credit:        input.Credit,
-		Debit:         input.Debit,
+		SourceID:         &input.SourceID,
+		DestinationID:    &input.DestinationID,
+		Description:      input.Description,
+		Date:             input.Date,
+		CompanyID:        &companyID,
+		UserID:           &userID,
+		IsIncome:         input.IsIncome,
+		IsExpense:        input.IsExpense,
+		IsEquity:         input.IsEquity,
+		IsTransfer:       input.IsTransfer,
+		AccountID:        input.AccountID,
+		Credit:           input.Credit,
+		Debit:            input.Debit,
+		IsOpeningBalance: input.IsOpeningBalance,
 	}
 	if err := h.financeSrv.TransactionService.CreateTransaction(&transaction, input.Amount); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

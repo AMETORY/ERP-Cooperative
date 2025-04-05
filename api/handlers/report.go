@@ -44,7 +44,7 @@ func (r *ReportHandler) GetCogsHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "cogs report retrieved successfully", "data": report})
+	c.JSON(http.StatusOK, gin.H{"message": "profit loss report retrieved successfully", "data": report})
 }
 func (r *ReportHandler) GetProfitLossHandler(c *gin.Context) {
 	input := objects.ReportRequest{}
@@ -52,10 +52,12 @@ func (r *ReportHandler) GetProfitLossHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	companyID := c.MustGet("companyID").(string)
 
 	report, err := r.financeSrv.ReportService.GenerateProfitLossReport(models.GeneralReport{
 		StartDate: input.StartDate,
 		EndDate:   input.EndDate,
+		CompanyID: companyID,
 	})
 
 	if err != nil {
@@ -63,4 +65,44 @@ func (r *ReportHandler) GetProfitLossHandler(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "cogs report retrieved successfully", "data": report})
+}
+func (r *ReportHandler) GetBalanceSheetHandler(c *gin.Context) {
+	input := objects.ReportRequest{}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	companyID := c.MustGet("companyID").(string)
+
+	report, err := r.financeSrv.ReportService.GenerateBalanceSheet(models.GeneralReport{
+		StartDate: input.StartDate,
+		EndDate:   input.EndDate,
+		CompanyID: companyID,
+	})
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "balance sheet retrieved successfully", "data": report})
+}
+func (r *ReportHandler) CapitalChangeHandler(c *gin.Context) {
+	input := objects.ReportRequest{}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	companyID := c.MustGet("companyID").(string)
+
+	report, err := r.financeSrv.ReportService.GenerateCapitalChangeReport(models.GeneralReport{
+		StartDate: input.StartDate,
+		EndDate:   input.EndDate,
+		CompanyID: companyID,
+	})
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "capital change retrieved successfully", "data": report})
 }
