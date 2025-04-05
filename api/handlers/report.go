@@ -106,3 +106,24 @@ func (r *ReportHandler) CapitalChangeHandler(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "capital change retrieved successfully", "data": report})
 }
+
+func (r *ReportHandler) CashFlowHandler(c *gin.Context) {
+	input := objects.ReportRequest{}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	companyID := c.MustGet("companyID").(string)
+
+	report, err := r.financeSrv.ReportService.GenerateCashFlowReport(models.GeneralReport{
+		StartDate: input.StartDate,
+		EndDate:   input.EndDate,
+		CompanyID: companyID,
+	})
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "cash flow retrieved successfully", "data": report})
+}
