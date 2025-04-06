@@ -242,6 +242,8 @@ func (s *SalesHandler) PaymentHandler(c *gin.Context) {
 	companyID := c.MustGet("companyID").(string)
 	sales.UserID = &userID
 	sales.CompanyID = &companyID
+	input.UserID = &userID
+	input.CompanyID = &companyID
 	err = s.orderSrv.SalesService.CreateSalesPayment(sales, &input)
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})

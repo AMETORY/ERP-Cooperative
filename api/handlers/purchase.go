@@ -220,6 +220,33 @@ func (s *PurchaseHandler) AddItemHandler(c *gin.Context) {
 	c.JSON(201, gin.H{"message": "Item added successfully", "data": input})
 }
 
+func (s *PurchaseHandler) PaymentHandler(c *gin.Context) {
+	id := c.Param("id")
+	var input models.PurchasePaymentModel
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+	sales, err := s.inventorySrv.PurchaseService.GetPurchaseByID(id)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	userID := c.MustGet("userID").(string)
+	companyID := c.MustGet("companyID").(string)
+	sales.UserID = &userID
+	sales.CompanyID = &companyID
+	input.UserID = &userID
+	input.CompanyID = &companyID
+	err = s.inventorySrv.PurchaseService.CreatePurchasePayment(sales, &input)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(201, gin.H{"message": "Payment added successfully", "data": input})
+}
+
 func (s *PurchaseHandler) DeleteItemHandler(c *gin.Context) {
 	id := c.Param("id")
 	itemId := c.Param("itemId")

@@ -17,6 +17,7 @@ func SetupPurchaseRoutes(r *gin.RouterGroup, erpContext *context.ERPContext) {
 		group.GET("/:id", middlewares.RbacUserMiddleware(erpContext, false, []string{"inventory:purchase:read"}), handler.GetPurchaseByIdHandler)
 		group.POST("/create", middlewares.RbacUserMiddleware(erpContext, false, []string{"inventory:purchase:create"}), handler.CreatePurchaseHandler)
 		group.PUT("/:id", middlewares.RbacUserMiddleware(erpContext, false, []string{"inventory:purchase:update"}), handler.UpdatePurchaseHandler)
+		group.PUT("/:id/payment", middlewares.RbacUserMiddleware(erpContext, false, []string{"inventory:purchase:update"}), handler.PaymentHandler)
 		group.PUT("/:id/add-item", middlewares.RbacUserMiddleware(erpContext, false, []string{"inventory:purchase:update"}), handler.AddItemHandler)
 		group.PUT("/:id/post", middlewares.RbacUserMiddleware(erpContext, false, []string{"inventory:purchase:update"}), handler.PostPurchaseHandler)
 		group.PUT("/:id/publish", middlewares.RbacUserMiddleware(erpContext, false, []string{"inventory:purchase:update"}), handler.PublishPurchaseHandler)

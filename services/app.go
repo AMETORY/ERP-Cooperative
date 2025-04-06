@@ -227,6 +227,7 @@ func (a AppService) generatePermissions(services map[string][]map[string][]strin
 	return permissions
 }
 
+// GenerateDefaultCategories creates default company sectors and categories.
 func (a AppService) GenerateDefaultCategories() {
 	var categories map[string]any
 	err := json.Unmarshal([]byte(companyCategoriesStr), &categories)
