@@ -57,6 +57,7 @@ func (a AppService) GenerateDefaultPermissions() []models.PermissionModel {
 			},
 			"inventory": {
 				{"purchase": cruds},
+				{"purchase_return": cruds},
 				{"product": cruds},
 				{"product_category": cruds},
 				{"price_category": cruds},
@@ -124,6 +125,7 @@ func (a AppService) GenerateAdminPermissions() []models.PermissionModel {
 			},
 			"inventory": {
 				{"purchase": cruds},
+				{"purchase_return": cruds},
 				{"product": cruds},
 				{"product_category": cruds},
 				{"price_category": cruds},

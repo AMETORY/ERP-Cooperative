@@ -22,6 +22,7 @@ import (
 	"github.com/AMETORY/ametory-erp-modules/order"
 	"github.com/AMETORY/ametory-erp-modules/shared/audit_trail"
 	"github.com/AMETORY/ametory-erp-modules/shared/indonesia_regional"
+	"github.com/AMETORY/ametory-erp-modules/shared/models"
 	"github.com/AMETORY/ametory-erp-modules/thirdparty"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -146,6 +147,7 @@ func main() {
 	routes.SetupStockMovementRoutes(v1, erpContext)
 	routes.SetupPurchaseRoutes(v1, erpContext)
 	routes.SetupReportRoutes(v1, erpContext)
+	routes.SetupPurchaseReturnRoutes(v1, erpContext)
 
 	go func() {
 		workers.SendMail(erpContext)
@@ -154,6 +156,12 @@ func main() {
 	if os.Getenv("GEN_PERMISSIONS") != "" {
 		for _, v := range appService.GenerateDefaultPermissions() {
 			erpContext.DB.Create(&v)
+		}
+
+		var companies []models.CompanyModel
+		erpContext.DB.Find(&companies)
+		for _, company := range companies {
+			appService.GenerateDefaultRoles(company.ID)
 		}
 	}
 	if os.Getenv("DEFAULT_CATEGORY") != "" {
