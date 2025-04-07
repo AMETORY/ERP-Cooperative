@@ -16,6 +16,8 @@ func SetupPurchaseReturnRoutes(r *gin.RouterGroup, erpContext *context.ERPContex
 		group.GET("/list", handler.GetPurchaseReturnListHandler)
 		group.GET("/:id", handler.GetPurchaseReturnHandler)
 		group.POST("/create", handler.CreatePurchaseReturnHandler)
+		group.PUT("/:id", handler.UpdatePurchaseReturnHandler)
+		group.PUT("/:id/release", handler.ReleasePurchaseReturnHandler)
 		group.PUT("/:id/add-item", handler.AddItemPurchaseReturnHandler)
 		group.PUT("/:id/update-item/:itemId", handler.UpdateItemPurchaseReturnHandler)
 		group.PUT("/:id/delete-item/:itemId", handler.DeleteItemPurchaseReturnHandler)

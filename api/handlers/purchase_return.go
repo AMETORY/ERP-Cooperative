@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"time"
+
 	"github.com/AMETORY/ametory-erp-modules/context"
 	"github.com/AMETORY/ametory-erp-modules/shared/models"
 	"github.com/gin-gonic/gin"
@@ -44,6 +46,43 @@ func (s *PurchaseReturnHandler) GetPurchaseReturnHandler(c *gin.Context) {
 	c.JSON(200, gin.H{"data": purchaseReturn, "message": "Purchase return retrieved successfully"})
 }
 
+func (s *PurchaseReturnHandler) UpdatePurchaseReturnHandler(c *gin.Context) {
+	id := c.Param("id")
+	var input models.ReturnModel
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+	err = s.inventorySrv.PurchaseReturnService.UpdateReturn(id, &input)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"message": "Purchase return updated successfully"})
+}
+
+func (s *PurchaseReturnHandler) ReleasePurchaseReturnHandler(c *gin.Context) {
+	id := c.Param("id")
+	var input struct {
+		Date      time.Time `json:"date"`
+		AccountID *string   `json:"account_id"`
+		Notes     string    `json:"notes"`
+	}
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	userID := c.MustGet("userID").(string)
+	err = s.inventorySrv.PurchaseReturnService.ReleaseReturn(id, userID, input.Date, input.Notes, input.AccountID)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"message": "Purchase return released successfully"})
+}
 func (s *PurchaseReturnHandler) CreatePurchaseReturnHandler(c *gin.Context) {
 	var input models.ReturnModel
 	err := c.ShouldBindJSON(&input)
