@@ -9,6 +9,7 @@ import (
 
 	"github.com/AMETORY/ametory-erp-modules/context"
 	"github.com/AMETORY/ametory-erp-modules/shared"
+	"github.com/AMETORY/ametory-erp-modules/shared/constants"
 	"github.com/AMETORY/ametory-erp-modules/shared/models"
 	"github.com/AMETORY/ametory-erp-modules/utils"
 	"github.com/go-redis/redis/v8"
@@ -303,6 +304,122 @@ func (a AppService) GenerateDefaultCategories() {
 		a.ctx.DB.Create(&sector)
 	}
 
+}
+
+var GenerateCustomAccounts = []models.AccountModel{
+	{
+		CashflowSubGroup: constants.EQUITY_CAPITAL,
+		CashflowGroup:    constants.CASHFLOW_GROUP_FINANCING,
+		Category:         constants.CATEGORY_EQUITY,
+		Name:             "Jasa Modal",
+		Type:             models.EQUITY,
+		Code:             "31006",
+	},
+	{
+		CashflowSubGroup: constants.EQUITY_CAPITAL,
+		CashflowGroup:    constants.CASHFLOW_GROUP_FINANCING,
+		Category:         constants.CATEGORY_EQUITY,
+		Name:             "Jasa Usaha",
+		Type:             models.EQUITY,
+		Code:             "31007",
+	},
+	{
+		CashflowSubGroup: constants.EQUITY_CAPITAL,
+		CashflowGroup:    constants.CASHFLOW_GROUP_FINANCING,
+		Category:         constants.CATEGORY_EQUITY,
+		Name:             "Dana Cadangan",
+		Type:             models.EQUITY,
+		Code:             "31008",
+	},
+	{
+		CashflowSubGroup: constants.EQUITY_CAPITAL,
+		CashflowGroup:    constants.CASHFLOW_GROUP_FINANCING,
+		Category:         constants.CATEGORY_EQUITY,
+		Name:             "Dana Sosial",
+		Type:             models.EQUITY,
+		Code:             "31009",
+	},
+	{
+		CashflowSubGroup: constants.EQUITY_CAPITAL,
+		CashflowGroup:    constants.CASHFLOW_GROUP_FINANCING,
+		Category:         constants.CATEGORY_EQUITY,
+		Name:             "Dana Pendidikan",
+		Type:             models.EQUITY,
+		Code:             "31010",
+	},
+	{
+		CashflowSubGroup: constants.EQUITY_CAPITAL,
+		CashflowGroup:    constants.CASHFLOW_GROUP_FINANCING,
+		Category:         constants.CATEGORY_EQUITY,
+		Name:             "Dana Pengurus",
+		Type:             models.EQUITY,
+		Code:             "31011",
+	},
+	{
+		CashflowSubGroup: constants.EQUITY_CAPITAL,
+		CashflowGroup:    constants.CASHFLOW_GROUP_FINANCING,
+		Category:         constants.CATEGORY_EQUITY,
+		Name:             "Dana Lainnya",
+		Type:             models.EQUITY,
+		Code:             "31012",
+	},
+
+	{
+		CashflowSubGroup: constants.CASH_BANK,
+		CashflowGroup:    constants.CASHFLOW_GROUP_CURRENT_ASSET,
+		Category:         constants.CATEGORY_CURRENT_ASSET,
+		Name:             "Kas Alokasi SHU Jasa Modal",
+		Type:             models.ASSET,
+		Code:             "11010",
+	},
+	{
+		CashflowSubGroup: constants.CASH_BANK,
+		CashflowGroup:    constants.CASHFLOW_GROUP_CURRENT_ASSET,
+		Category:         constants.CATEGORY_CURRENT_ASSET,
+		Name:             "Kas Alokasi SHU Jasa Usaha",
+		Type:             models.ASSET,
+		Code:             "11011",
+	},
+	{
+		CashflowSubGroup: constants.CASH_BANK,
+		CashflowGroup:    constants.CASHFLOW_GROUP_CURRENT_ASSET,
+		Category:         constants.CATEGORY_CURRENT_ASSET,
+		Name:             "Kas Alokasi SHU Dana Cadangan",
+		Type:             models.ASSET,
+		Code:             "11012",
+	},
+	{
+		CashflowSubGroup: constants.CASH_BANK,
+		CashflowGroup:    constants.CASHFLOW_GROUP_CURRENT_ASSET,
+		Category:         constants.CATEGORY_CURRENT_ASSET,
+		Name:             "Kas Alokasi SHU Dana Sosial",
+		Type:             models.ASSET,
+		Code:             "11013",
+	},
+	{
+		CashflowSubGroup: constants.CASH_BANK,
+		CashflowGroup:    constants.CASHFLOW_GROUP_CURRENT_ASSET,
+		Category:         constants.CATEGORY_CURRENT_ASSET,
+		Name:             "Kas Alokasi SHU Dana Pendidikan",
+		Type:             models.ASSET,
+		Code:             "11014",
+	},
+	{
+		CashflowSubGroup: constants.CASH_BANK,
+		CashflowGroup:    constants.CASHFLOW_GROUP_CURRENT_ASSET,
+		Category:         constants.CATEGORY_CURRENT_ASSET,
+		Name:             "Kas Alokasi SHU Dana Pengurus",
+		Type:             models.ASSET,
+		Code:             "11015",
+	},
+	{
+		CashflowSubGroup: constants.CASH_BANK,
+		CashflowGroup:    constants.CASHFLOW_GROUP_CURRENT_ASSET,
+		Category:         constants.CATEGORY_CURRENT_ASSET,
+		Name:             "Kas Alokasi SHU Dana Lainnya",
+		Type:             models.ASSET,
+		Code:             "11016",
+	},
 }
 
 var companyCategoriesStr = `{

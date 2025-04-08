@@ -20,5 +20,6 @@ func SetupCommonRoutes(r *gin.RouterGroup, erpContext *context.ERPContext) {
 		r.DELETE("/invited/:id", middlewares.AuthMiddleware(erpContext, false), middlewares.RbacUserMiddleware(erpContext, false, []string{"cooperative:cooperative_member:invite"}), commonHandler.DeleteInvitedHandler)
 		r.GET("/setting", middlewares.AuthMiddleware(erpContext, false), commonHandler.CompanySettingHandler)
 		r.PUT("/setting", middlewares.AuthMiddleware(erpContext, false), middlewares.RbacSuperAdminMiddleware(erpContext), commonHandler.UpdateCompanySettingHandler)
+		r.PUT("/cooperative/setting", middlewares.AuthMiddleware(erpContext, false), middlewares.RbacSuperAdminMiddleware(erpContext), commonHandler.UpdateCooperativeSettingHandler)
 	}
 }

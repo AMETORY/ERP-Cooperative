@@ -19,6 +19,7 @@ import (
 	"github.com/AMETORY/ametory-erp-modules/utils"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type CommonHandler struct {
@@ -302,33 +303,28 @@ func (h *CommonHandler) CompanySettingHandler(c *gin.Context) {
 
 	userID := c.MustGet("userID").(string)
 	companyID := c.GetHeader("ID-Company")
-	isSuperAdmin, _ := checkSuperAdmin(h.ctx, userID, companyID)
-	if isSuperAdmin {
-		var setting app_models.CustomSettingModel
-		err := h.ctx.DB.Where("id = ?", c.GetHeader("ID-Company")).First(&setting).Error
-		if err != nil {
-			c.JSON(404, gin.H{"error": err.Error()})
-			return
-		}
 
-		if setting.IsCooperation {
-			var cooperationSetting models.CooperativeSettingModel
-			err := h.ctx.DB.Where("company_id = ?", c.GetHeader("ID-Company")).First(&cooperationSetting).Error
-			if err == nil {
-				setting.CooperativeSetting = &cooperationSetting
-			}
-
-		}
-
-		c.JSON(200, gin.H{"message": "Get company setting successfully", "data": setting})
-		return
-	}
-
-	var setting models.CompanyModel
+	var setting app_models.CustomSettingModel
 	err := h.ctx.DB.Where("id = ?", c.GetHeader("ID-Company")).First(&setting).Error
 	if err != nil {
 		c.JSON(404, gin.H{"error": err.Error()})
 		return
+	}
+
+	if setting.IsCooperation {
+		var cooperationSetting models.CooperativeSettingModel
+		err := h.ctx.DB.Preload(clause.Associations).Where("company_id = ?", c.GetHeader("ID-Company")).First(&cooperationSetting).Error
+		if err == nil {
+			setting.CooperativeSetting = &cooperationSetting
+		}
+
+	}
+	isSuperAdmin, _ := checkSuperAdmin(h.ctx, userID, companyID)
+	if !isSuperAdmin {
+		setting.GeminiAPIKey = nil
+		setting.WhatsappWebHost = nil
+		setting.WhatsappWebMockNumber = nil
+		setting.WhatsappWebIsMocked = nil
 	}
 
 	c.JSON(200, gin.H{"message": "Get company setting successfully", "data": setting})
@@ -336,6 +332,31 @@ func (h *CommonHandler) CompanySettingHandler(c *gin.Context) {
 }
 func (h *CommonHandler) UpdateCompanySettingHandler(c *gin.Context) {
 	var input app_models.CustomSettingModel
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+	h.ctx.Request = c.Request
+	err = h.ctx.DB.Where("id = ?", input.ID).Updates(&input).Error
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	// err = h.ctx.DB.Model(&input.Setting).Where("company_id = ?", input.CompanyModel.ID).Updates(map[string]any{
+	// 	"gemini_api_key":           input.Setting.GeminiAPIKey,
+	// 	"whatsapp_web_host":        input.Setting.WhatsappWebHost,
+	// 	"whatsapp_web_mock_number": input.Setting.WhatsappWebMockNumber,
+	// 	"whatsapp_web_is_mocked":   input.Setting.WhatsappWebIsMocked,
+	// }).Error
+	// if err != nil {
+	// 	c.JSON(500, gin.H{"error": "Failed to update company setting"})
+	// 	return
+	// }
+	c.JSON(200, gin.H{"message": " company setting update successfully"})
+}
+func (h *CommonHandler) UpdateCooperativeSettingHandler(c *gin.Context) {
+	var input models.CooperativeSettingModel
 	err := c.ShouldBindJSON(&input)
 	if err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})

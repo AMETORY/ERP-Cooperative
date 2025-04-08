@@ -170,6 +170,11 @@ func main() {
 					erpContext.DB.Model(&v).Association("Permissions").Append(&v.Permissions)
 				}
 			}
+
+			// for _, v := range services.GenerateCustomAccounts {
+			// 	v.CompanyID = &company.ID
+			// 	erpContext.DB.Create(&v)
+			// }
 		}
 	}
 	if os.Getenv("DEFAULT_CATEGORY") != "" {
