@@ -210,7 +210,12 @@ func (h *AuthHandler) GetProfile(c *gin.Context) {
 	if member.Role != nil {
 		user.Roles = []models.RoleModel{*member.Role}
 	}
-	c.JSON(200, gin.H{"user": user, "companies": user.Companies, "member": member})
+	var memberData *models.CooperativeMemberModel
+	if member.ID != "" {
+		memberData = &member
+	}
+
+	c.JSON(200, gin.H{"user": user, "companies": user.Companies, "member": memberData})
 }
 
 func (h *AuthHandler) UpdateProfile(c *gin.Context) {

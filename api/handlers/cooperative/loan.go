@@ -50,12 +50,17 @@ func (h *LoanApplicationHandler) CreateLoanHandler(c *gin.Context) {
 		return
 	}
 
+	userID := c.MustGet("userID").(string)
+	companyID := c.MustGet("companyID").(string)
+	input.CompanyID = &companyID
+	input.UserID = &userID
+
 	err = h.coopertiveSrv.LoanApplicationService.CreateLoan(&input)
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(201, gin.H{"message": "Loan created successfully"})
+	c.JSON(201, gin.H{"message": "Loan created successfully", "data": input})
 }
 
 func (h *LoanApplicationHandler) UpdateLoanHandler(c *gin.Context) {
@@ -83,4 +88,74 @@ func (h *LoanApplicationHandler) DeleteLoanHandler(c *gin.Context) {
 		return
 	}
 	c.JSON(200, gin.H{"message": "Loan deleted successfully"})
+}
+
+func (h *LoanApplicationHandler) ApprovalHandler(c *gin.Context) {
+	id := c.Param("id")
+
+	var input struct {
+		ApprovalStatus string `json:"approval_status"`
+		Remarks        string `json:"remarks"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	userID := c.MustGet("userID").(string)
+
+	err := h.coopertiveSrv.LoanApplicationService.ApprovalLoan(id, userID, input.ApprovalStatus, input.Remarks)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"message": "Loan approved successfully"})
+}
+
+func (h *LoanApplicationHandler) DisbursementHandler(c *gin.Context) {
+	var input struct {
+		AccountAssetID string `json:"account_asset_id"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+
+	}
+	accountAssetID := input.AccountAssetID
+	id := c.Param("id")
+	loan, err := h.coopertiveSrv.LoanApplicationService.GetLoanByID(id, nil)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	user := c.MustGet("user").(models.UserModel)
+	err = h.coopertiveSrv.LoanApplicationService.DisburseLoan(loan, &accountAssetID, &user)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"message": "Loan disbursed successfully"})
+}
+
+func (h *LoanApplicationHandler) PaymentHandler(c *gin.Context) {
+	id := c.Param("id")
+	loan, err := h.coopertiveSrv.LoanApplicationService.GetLoanByID(id, nil)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	var input models.InstallmentPayment
+	err = c.ShouldBindJSON(&input)
+	if err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+	input.MemberID = loan.MemberID
+	userID := c.MustGet("userID").(string)
+	err = h.coopertiveSrv.LoanApplicationService.CreatePayment(&input, loan, &userID)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(201, gin.H{"message": "Loan payment added successfully", "data": input})
 }

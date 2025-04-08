@@ -33,4 +33,15 @@ func SetupCooperativeRoutes(r *gin.RouterGroup, ctx *context.ERPContext) {
 		loanGroup.DELETE("/:id", middlewares.RbacUserMiddleware(ctx, false, []string{"cooperative:loan_application:delete"}), loanHandler.DeleteLoanHandler)
 	}
 
+	savingHandler := cooperative_handler.NewSavingHandler(ctx)
+	savingGroup := r.Group("/cooperative/saving")
+	savingGroup.Use(middlewares.AuthMiddleware(ctx, false))
+	{
+		savingGroup.GET("/list", middlewares.RbacUserMiddleware(ctx, false, []string{"cooperative:saving:read"}), savingHandler.GetSavingsHandler)
+		savingGroup.GET("/:id", middlewares.RbacUserMiddleware(ctx, false, []string{"cooperative:saving:read"}), savingHandler.GetSavingHandler)
+		savingGroup.POST("/create", middlewares.RbacUserMiddleware(ctx, false, []string{"cooperative:saving:create"}), savingHandler.CreateSavingHandler)
+		savingGroup.PUT("/:id", middlewares.RbacUserMiddleware(ctx, false, []string{"cooperative:saving:update"}), savingHandler.UpdateSavingHandler)
+		savingGroup.DELETE("/:id", middlewares.RbacUserMiddleware(ctx, false, []string{"cooperative:saving:delete"}), savingHandler.DeleteSavingHandler)
+	}
+
 }
