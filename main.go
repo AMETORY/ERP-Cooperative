@@ -149,6 +149,7 @@ func main() {
 	routes.SetupReportRoutes(v1, erpContext)
 	routes.SetupPurchaseReturnRoutes(v1, erpContext)
 	routes.SetupSalesReturnRoutes(v1, erpContext)
+	routes.SetupCooperativeRoutes(v1, erpContext)
 
 	go func() {
 		workers.SendMail(erpContext)
@@ -162,7 +163,13 @@ func main() {
 		var companies []models.CompanyModel
 		erpContext.DB.Find(&companies)
 		for _, company := range companies {
-			appService.GenerateDefaultRoles(company.ID)
+			roles := appService.GenerateDefaultRoles(company.ID)
+			for _, v := range roles {
+				err := erpContext.DB.Where("name = ?", v.Name).First(&v).Error
+				if err == nil {
+					erpContext.DB.Model(&v).Association("Permissions").Append(&v.Permissions)
+				}
+			}
 		}
 	}
 	if os.Getenv("DEFAULT_CATEGORY") != "" {

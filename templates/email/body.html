@@ -16,16 +16,22 @@
                                             style="cursor:auto;color:#000000;font-family:Helvetica, Arial, sans-serif;font-size:17px;font-weight:300;line-height:22px;text-align:left;">
                                             <h3>Halo, {{.FullName}}</h3>
                                             <p><i>{{.Notif}}</i></p>
+                                            {{ if ne .RoleName "" }}
+                                            <p><strong>sebagai: {{.RoleName}}</a></p>
+                                            {{ end }}
                                             {{ if ne .Link "" }}
+                                            <p>Klik Link Berikut untuk Aktifasi: </p>
                                             <p><strong><a href="{{.Link}}">{{.Link}}</strong></a></p>
                                             {{ end }}
                                             {{ if ne .Email "" }}
                                             <p>Gunakan Email berikut: </p>
                                             <p><strong>{{.Email}}</strong></p>
+                                            <p>Untuk masuk kedalam sistem </p>
                                             {{ end }}
                                             {{ if ne .Password "" }}
-                                            <p>Gunakan Password berikut: </p>
+                                            <p>Berikut adalah Password anda: </p>
                                             <p><strong>{{.Password}}</strong></p>
+                                            <p>silahkan ganti setelah berhasil login </p>
                                             {{ end }}
                                            
 

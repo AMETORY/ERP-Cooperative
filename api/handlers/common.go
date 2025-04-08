@@ -176,8 +176,10 @@ func (h *CommonHandler) InviteMemberHandler(c *gin.Context) {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
+	var role models.RoleModel
+	h.ctx.DB.Where("id = ?", input.RoleID).First(&role)
 	link = fmt.Sprintf("%s/invitation/verify/%s", h.appService.Config.Server.FrontendURL, token)
-	notif := fmt.Sprintf("Anda telah diundang untuk bergabung di perusahaan %s ", company.Name)
+	notif := fmt.Sprintf("Anda telah diundang untuk bergabung di %s ", company.Name)
 	if input.ProjectID != nil {
 		var project models.ProjectModel
 		h.ctx.DB.Where("id = ?", *input.ProjectID).First(&project)
@@ -186,10 +188,11 @@ func (h *CommonHandler) InviteMemberHandler(c *gin.Context) {
 	var emailData objects.EmailData = objects.EmailData{
 		FullName: user.FullName,
 		Email:    user.Email,
-		Subject:  "Selamat datang di Ametory Project Manager",
+		Subject:  "Selamat datang di " + h.appService.Config.Server.AppName,
 		Notif:    notif,
 		Link:     link,
 		Password: password,
+		RoleName: role.Name,
 	}
 
 	b, err := json.Marshal(emailData)
@@ -296,7 +299,23 @@ func (h *CommonHandler) CompanySettingHandler(c *gin.Context) {
 	// 	CompanyModel: *data,
 	// 	Setting:      companySetting,
 	// }
-	var setting app_models.CustomSettingModel
+
+	userID := c.MustGet("userID").(string)
+	companyID := c.GetHeader("ID-Company")
+	isSuperAdmin, _ := checkSuperAdmin(h.ctx, userID, companyID)
+	if isSuperAdmin {
+		var setting app_models.CustomSettingModel
+		err := h.ctx.DB.Where("id = ?", c.GetHeader("ID-Company")).First(&setting).Error
+		if err != nil {
+			c.JSON(404, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(200, gin.H{"message": "Get company setting successfully", "data": setting})
+		return
+	}
+
+	var setting models.CompanyModel
 	err := h.ctx.DB.Where("id = ?", c.GetHeader("ID-Company")).First(&setting).Error
 	if err != nil {
 		c.JSON(404, gin.H{"error": err.Error()})
@@ -304,6 +323,7 @@ func (h *CommonHandler) CompanySettingHandler(c *gin.Context) {
 	}
 
 	c.JSON(200, gin.H{"message": "Get company setting successfully", "data": setting})
+
 }
 func (h *CommonHandler) UpdateCompanySettingHandler(c *gin.Context) {
 	var input app_models.CustomSettingModel
@@ -329,4 +349,24 @@ func (h *CommonHandler) UpdateCompanySettingHandler(c *gin.Context) {
 	// 	return
 	// }
 	c.JSON(200, gin.H{"message": " company setting update successfully"})
+}
+
+func checkSuperAdmin(erpContext *context.ERPContext, userID string, companyID string) (bool, error) {
+	var admin models.UserModel
+
+	// Cari pengguna beserta peran dan izin
+	if err := erpContext.DB.Preload("Roles", func(db *gorm.DB) *gorm.DB {
+		return db.Where("company_id = ?", companyID)
+	}).First(&admin, "id = ?", userID).Error; err != nil {
+		return false, errors.New("admin not found")
+	}
+
+	// Periksa izin
+	for _, role := range admin.Roles {
+		if role.IsSuperAdmin {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }

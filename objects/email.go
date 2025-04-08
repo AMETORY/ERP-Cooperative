@@ -10,4 +10,5 @@ type EmailData struct {
 	Notif       string `json:"notif"`
 	Link        string `json:"link"`
 	Password    string `json:"password"`
+	RoleName    string `json:"role_name"`
 }

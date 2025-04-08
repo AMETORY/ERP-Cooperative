@@ -55,6 +55,14 @@ func (a AppService) GenerateDefaultPermissions() []models.PermissionModel {
 			"order": {
 				{"sales": append(cruds, "approval", "publish")},
 			},
+			"menu": {
+				{"admin": []string{
+					"dashboard",
+					"preferences",
+					"feature",
+					"inventory",
+				}},
+			},
 			"inventory": {
 				{"purchase": cruds},
 				{"purchase_return": cruds},
@@ -94,9 +102,9 @@ func (a AppService) GenerateDefaultPermissions() []models.PermissionModel {
 			},
 
 			"cooperative": {
-				{"cooperative_member": append(cruds, "approval")},
+				{"cooperative_member": append(cruds, "approval", "invite")},
 				{"cooperative_setting": cruds},
-				{"loan_application": cruds},
+				{"loan_application": append(cruds, "request", "approve", "reject")},
 				{"saving": cruds},
 				{"net_surplus": cruds},
 			},
@@ -123,6 +131,14 @@ func (a AppService) GenerateAdminPermissions() []models.PermissionModel {
 			"order": {
 				{"sales": append(cruds, "approval", "publish")},
 			},
+			"menu": {
+				{"admin": []string{
+					"dashboard",
+					"preferences",
+					"feature",
+					"inventory",
+				}},
+			},
 			"inventory": {
 				{"purchase": cruds},
 				{"purchase_return": cruds},
@@ -161,9 +177,9 @@ func (a AppService) GenerateAdminPermissions() []models.PermissionModel {
 				}},
 			},
 			"cooperative": {
-				{"cooperative_member": append(cruds, "approval")},
+				{"cooperative_member": append(cruds, "approval", "invite")},
 				{"cooperative_setting": cruds},
-				{"loan_application": cruds},
+				{"loan_application": append(cruds, "request", "approve", "reject")},
 				{"saving": cruds},
 				{"net_surplus": cruds},
 			},
@@ -176,8 +192,8 @@ func (a AppService) GenerateMemberPermissions() []models.PermissionModel {
 	var (
 		services = map[string][]map[string][]string{
 			"cooperative": {
-				{"loan_application": []string{"read", "create", "update"}},
-				{"saving": []string{"read", "create", "update"}},
+				{"loan_application": []string{"my", "request"}},
+				{"saving": []string{"my", "request"}},
 			},
 		}
 	)
