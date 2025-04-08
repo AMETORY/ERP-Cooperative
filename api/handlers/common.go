@@ -311,6 +311,15 @@ func (h *CommonHandler) CompanySettingHandler(c *gin.Context) {
 			return
 		}
 
+		if setting.IsCooperation {
+			var cooperationSetting models.CooperativeSettingModel
+			err := h.ctx.DB.Where("company_id = ?", c.GetHeader("ID-Company")).First(&cooperationSetting).Error
+			if err == nil {
+				setting.CooperativeSetting = &cooperationSetting
+			}
+
+		}
+
 		c.JSON(200, gin.H{"message": "Get company setting successfully", "data": setting})
 		return
 	}

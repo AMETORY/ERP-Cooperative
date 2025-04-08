@@ -22,5 +22,15 @@ func SetupCooperativeRoutes(r *gin.RouterGroup, ctx *context.ERPContext) {
 		// memberGroup.POST("/invite", middlewares.RbacUserMiddleware(ctx, false, []string{"cooperative:cooperative_member:invite"}), memberHandler.InviteMemberHandler)
 		// memberGroup.POST("/approve/:id", middlewares.RbacUserMiddleware(ctx, false, []string{"cooperative:cooperative_member:approval"}), memberHandler.ApproveMemberHandler)
 	}
+	loanHandler := cooperative_handler.NewLoanApplicationHandler(ctx)
+	loanGroup := r.Group("/cooperative/loan")
+	loanGroup.Use(middlewares.AuthMiddleware(ctx, false))
+	{
+		loanGroup.GET("/list", middlewares.RbacUserMiddleware(ctx, false, []string{"cooperative:loan_application:read"}), loanHandler.GetLoansHandler)
+		loanGroup.GET("/:id", middlewares.RbacUserMiddleware(ctx, false, []string{"cooperative:loan_application:read"}), loanHandler.GetLoanHandler)
+		loanGroup.POST("/create", middlewares.RbacUserMiddleware(ctx, false, []string{"cooperative:loan_application:create"}), loanHandler.CreateLoanHandler)
+		loanGroup.PUT("/:id", middlewares.RbacUserMiddleware(ctx, false, []string{"cooperative:loan_application:update"}), loanHandler.UpdateLoanHandler)
+		loanGroup.DELETE("/:id", middlewares.RbacUserMiddleware(ctx, false, []string{"cooperative:loan_application:delete"}), loanHandler.DeleteLoanHandler)
+	}
 
 }
