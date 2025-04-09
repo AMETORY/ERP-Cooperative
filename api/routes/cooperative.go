@@ -46,5 +46,15 @@ func SetupCooperativeRoutes(r *gin.RouterGroup, ctx *context.ERPContext) {
 		savingGroup.PUT("/:id", middlewares.RbacUserMiddleware(ctx, false, []string{"cooperative:saving:update"}), savingHandler.UpdateSavingHandler)
 		savingGroup.DELETE("/:id", middlewares.RbacUserMiddleware(ctx, false, []string{"cooperative:saving:delete"}), savingHandler.DeleteSavingHandler)
 	}
+	netSurplusHandler := cooperative_handler.NewNetSurplusHandler(ctx)
+	netSurplusGroup := r.Group("/cooperative/net-surplus")
+	netSurplusGroup.Use(middlewares.AuthMiddleware(ctx, false))
+	{
+		netSurplusGroup.GET("/list", middlewares.RbacUserMiddleware(ctx, false, []string{"cooperative:net_surplus:read"}), netSurplusHandler.GetNetSurplusListHandler)
+		netSurplusGroup.GET("/:id", middlewares.RbacUserMiddleware(ctx, false, []string{"cooperative:net_surplus:read"}), netSurplusHandler.GetNetSurplusHandler)
+		netSurplusGroup.POST("/create", middlewares.RbacUserMiddleware(ctx, false, []string{"cooperative:net_surplus:create"}), netSurplusHandler.CreateNetSurplusHandler)
+		netSurplusGroup.PUT("/:id", middlewares.RbacUserMiddleware(ctx, false, []string{"cooperative:net_surplus:update"}), netSurplusHandler.UpdateNetSurplusHandler)
+		netSurplusGroup.DELETE("/:id", middlewares.RbacUserMiddleware(ctx, false, []string{"cooperative:net_surplus:delete"}), netSurplusHandler.DeleteNetSurplusHandler)
+	}
 
 }
