@@ -27,6 +27,18 @@ func NewAccountHandler(ctx *context.ERPContext) *AccountHandler {
 	}
 }
 
+func (a *AccountHandler) CashflowSubGroupHandler(c *gin.Context) {
+	c.JSON(200, gin.H{"data": models.ListSubGrup()})
+}
+func (a *AccountHandler) DefaultSubGroupHandler(c *gin.Context) {
+	var company models.CompanyModel
+	a.ctx.DB.Model(&company).Where("id = ?", c.GetHeader("ID-Company")).First(&company)
+	setting := models.DefaultCasflowGroupSetting()
+	if company.IsCooperation {
+		setting = models.CooperationCasflowGroupSetting()
+	}
+	c.JSON(200, gin.H{"data": setting})
+}
 func (a *AccountHandler) GetAccountTypesHandler(c *gin.Context) {
 	types := a.financeSrv.AccountService.GetTypes()
 	c.JSON(200, gin.H{"data": types})

@@ -15,6 +15,8 @@ func SetupAccountRoutes(r *gin.RouterGroup, erpContext *context.ERPContext) {
 	{
 		accountGroup.GET("/chart-of-accounts", accountHandler.GetChartOfAccounts)
 		accountGroup.GET("/account-types", accountHandler.GetAccountTypesHandler)
+		accountGroup.GET("/cashflow-subgroups", accountHandler.CashflowSubGroupHandler)
+		accountGroup.GET("/default-subgroups", accountHandler.DefaultSubGroupHandler)
 		accountGroup.GET("/get-code", accountHandler.GetCodeHandler)
 		accountGroup.POST("/create", accountHandler.CreateAccountHandler)
 		accountGroup.GET("/list", middlewares.RbacUserMiddleware(erpContext, false, []string{"finance:account:read"}), accountHandler.GetAccountHandler)

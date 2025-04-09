@@ -326,6 +326,7 @@ func (h *CommonHandler) CompanySettingHandler(c *gin.Context) {
 		setting.WhatsappWebMockNumber = nil
 		setting.WhatsappWebIsMocked = nil
 	}
+	setting.CashflowGroupSettingData = nil
 
 	c.JSON(200, gin.H{"message": "Get company setting successfully", "data": setting})
 
@@ -343,6 +344,7 @@ func (h *CommonHandler) UpdateCompanySettingHandler(c *gin.Context) {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
+	// utils.LogJson(input)
 	// err = h.ctx.DB.Model(&input.Setting).Where("company_id = ?", input.CompanyModel.ID).Updates(map[string]any{
 	// 	"gemini_api_key":           input.Setting.GeminiAPIKey,
 	// 	"whatsapp_web_host":        input.Setting.WhatsappWebHost,

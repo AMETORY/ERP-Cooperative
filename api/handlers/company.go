@@ -3,6 +3,7 @@ package handlers
 import (
 	"ametory-cooperative/objects"
 	"ametory-cooperative/services"
+	"encoding/json"
 
 	"github.com/AMETORY/ametory-erp-modules/company"
 	"github.com/AMETORY/ametory-erp-modules/context"
@@ -64,19 +65,26 @@ func (c *CompanyHandler) CreateCompany(ctx *gin.Context) {
 		return
 	}
 	user := ctx.MustGet("user").(models.UserModel)
-
+	cashflowSetting := models.DefaultCasflowGroupSetting()
+	b, _ := json.Marshal(cashflowSetting)
+	cashflowSettingStr := string(b)
+	if input.IsCooperation {
+		cashflowSetting = models.CooperationCasflowGroupSetting()
+	}
 	company := models.CompanyModel{
-		Name:              input.Name,
-		Address:           input.Address,
-		Email:             input.Email,
-		Phone:             input.Phone,
-		CompanyCategoryID: &input.CompanyCategoryID,
-		ProvinceID:        &input.ProvinceID,
-		RegencyID:         &input.RegencyID,
-		DistrictID:        &input.DistrictID,
-		VillageID:         &input.VillageID,
-		ZipCode:           &input.ZipCode,
-		IsCooperation:     input.IsCooperation,
+		Name:                     input.Name,
+		Address:                  input.Address,
+		Email:                    input.Email,
+		Phone:                    input.Phone,
+		CompanyCategoryID:        &input.CompanyCategoryID,
+		ProvinceID:               &input.ProvinceID,
+		RegencyID:                &input.RegencyID,
+		DistrictID:               &input.DistrictID,
+		VillageID:                &input.VillageID,
+		ZipCode:                  &input.ZipCode,
+		IsCooperation:            input.IsCooperation,
+		CashflowGroupSetting:     &cashflowSetting,
+		CashflowGroupSettingData: &cashflowSettingStr,
 	}
 	err := c.ctx.DB.Transaction(func(tx *gorm.DB) error {
 

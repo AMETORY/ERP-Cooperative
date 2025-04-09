@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"ametory-cooperative/app_models"
 	"ametory-cooperative/objects"
 	"net/http"
 
@@ -113,13 +114,24 @@ func (r *ReportHandler) CashFlowHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	var setting app_models.CustomSettingModel
+	err := r.ctx.DB.Where("id = ?", c.GetHeader("ID-Company")).First(&setting).Error
+	if err != nil {
+		c.JSON(404, gin.H{"error": err.Error()})
+		return
+	}
+
 	companyID := c.MustGet("companyID").(string)
 
-	report, err := r.financeSrv.ReportService.GenerateCashFlowReport(models.GeneralReport{
-		StartDate: input.StartDate,
-		EndDate:   input.EndDate,
-		CompanyID: companyID,
-	})
+	cashflowReport := models.CashFlowReport{}
+	cashflowReport.StartDate = input.StartDate
+	cashflowReport.EndDate = input.EndDate
+	cashflowReport.CompanyID = companyID
+	cashflowReport.Operating = setting.CashflowGroupSetting.Operating
+	cashflowReport.Investing = setting.CashflowGroupSetting.Investing
+	cashflowReport.Financing = setting.CashflowGroupSetting.Financing
+
+	report, err := r.financeSrv.ReportService.GenerateCashFlowReport(cashflowReport)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
