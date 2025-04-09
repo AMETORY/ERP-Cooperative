@@ -94,8 +94,8 @@ func (h *LoanApplicationHandler) ApprovalHandler(c *gin.Context) {
 	id := c.Param("id")
 
 	var input struct {
-		ApprovalStatus string `json:"approval_status"`
-		Remarks        string `json:"remarks"`
+		ApprovalStatus string `json:"approval_status" binding:"required"`
+		Remarks        string `json:"remarks" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
@@ -114,7 +114,8 @@ func (h *LoanApplicationHandler) ApprovalHandler(c *gin.Context) {
 
 func (h *LoanApplicationHandler) DisbursementHandler(c *gin.Context) {
 	var input struct {
-		AccountAssetID string `json:"account_asset_id"`
+		AccountAssetID string `json:"account_asset_id" binding:"required"`
+		Remarks        string `json:"remarks" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
@@ -129,7 +130,7 @@ func (h *LoanApplicationHandler) DisbursementHandler(c *gin.Context) {
 		return
 	}
 	user := c.MustGet("user").(models.UserModel)
-	err = h.coopertiveSrv.LoanApplicationService.DisburseLoan(loan, &accountAssetID, &user)
+	err = h.coopertiveSrv.LoanApplicationService.DisburseLoan(loan, &accountAssetID, &user, input.Remarks)
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return

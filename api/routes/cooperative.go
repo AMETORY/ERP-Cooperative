@@ -30,6 +30,9 @@ func SetupCooperativeRoutes(r *gin.RouterGroup, ctx *context.ERPContext) {
 		loanGroup.GET("/:id", middlewares.RbacUserMiddleware(ctx, false, []string{"cooperative:loan_application:read"}), loanHandler.GetLoanHandler)
 		loanGroup.POST("/create", middlewares.RbacUserMiddleware(ctx, false, []string{"cooperative:loan_application:create"}), loanHandler.CreateLoanHandler)
 		loanGroup.PUT("/:id", middlewares.RbacUserMiddleware(ctx, false, []string{"cooperative:loan_application:update"}), loanHandler.UpdateLoanHandler)
+		loanGroup.PUT("/:id/approval", middlewares.RbacUserMiddleware(ctx, false, []string{"cooperative:loan_application:update"}), loanHandler.ApprovalHandler)
+		loanGroup.PUT("/:id/disbursement", middlewares.RbacUserMiddleware(ctx, false, []string{"cooperative:loan_application:update"}), loanHandler.DisbursementHandler)
+		loanGroup.PUT("/:id/payment", middlewares.RbacUserMiddleware(ctx, false, []string{"cooperative:loan_application:update"}), loanHandler.PaymentHandler)
 		loanGroup.DELETE("/:id", middlewares.RbacUserMiddleware(ctx, false, []string{"cooperative:loan_application:delete"}), loanHandler.DeleteLoanHandler)
 	}
 
