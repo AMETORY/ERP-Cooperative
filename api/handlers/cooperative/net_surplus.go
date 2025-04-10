@@ -24,22 +24,22 @@ func NewNetSurplusHandler(ctx *context.ERPContext) *NetSurplusHandler {
 }
 
 func (h *NetSurplusHandler) GetNetSurplusListHandler(c *gin.Context) {
-	loans, err := h.coopertiveSrv.NetSurplusService.GetNetSurplusList(*c.Request, c.Query("search"), nil)
+	netSurplus, err := h.coopertiveSrv.NetSurplusService.GetNetSurplusList(*c.Request, c.Query("search"), nil)
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(200, gin.H{"data": loans})
+	c.JSON(200, gin.H{"data": netSurplus})
 }
 
 func (h *NetSurplusHandler) GetNetSurplusHandler(c *gin.Context) {
 	id := c.Param("id")
-	loan, err := h.coopertiveSrv.NetSurplusService.GetNetSurplusByID(id, nil)
+	netSurplus, err := h.coopertiveSrv.NetSurplusService.GetNetSurplusByID(id, nil)
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(200, gin.H{"data": loan})
+	c.JSON(200, gin.H{"data": netSurplus})
 }
 
 func (h *NetSurplusHandler) CreateNetSurplusHandler(c *gin.Context) {
@@ -80,6 +80,31 @@ func (h *NetSurplusHandler) UpdateNetSurplusHandler(c *gin.Context) {
 	}
 
 	err = h.coopertiveSrv.NetSurplusService.UpdateNetSurplus(id, &input)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"message": "NetSurplus updated successfully"})
+}
+func (h *NetSurplusHandler) DistributeNetSurplusHandler(c *gin.Context) {
+	id := c.Param("id")
+	var input struct {
+		SourceID    string                        `json:"source_id"`
+		Allocations []models.NetSurplusAllocation `json:"allocations"`
+	}
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	netSurplus, err := h.coopertiveSrv.NetSurplusService.GetNetSurplusByID(id, nil)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	userID := c.MustGet("userID").(string)
+	err = h.coopertiveSrv.NetSurplusService.Distribute(netSurplus, input.SourceID, input.Allocations, userID)
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return

@@ -54,6 +54,7 @@ func SetupCooperativeRoutes(r *gin.RouterGroup, ctx *context.ERPContext) {
 		netSurplusGroup.GET("/:id", middlewares.RbacUserMiddleware(ctx, false, []string{"cooperative:net_surplus:read"}), netSurplusHandler.GetNetSurplusHandler)
 		netSurplusGroup.POST("/create", middlewares.RbacUserMiddleware(ctx, false, []string{"cooperative:net_surplus:create"}), netSurplusHandler.CreateNetSurplusHandler)
 		netSurplusGroup.PUT("/:id", middlewares.RbacUserMiddleware(ctx, false, []string{"cooperative:net_surplus:update"}), netSurplusHandler.UpdateNetSurplusHandler)
+		netSurplusGroup.PUT("/:id/distribute", middlewares.RbacUserMiddleware(ctx, false, []string{"cooperative:net_surplus:update"}), netSurplusHandler.DistributeNetSurplusHandler)
 		netSurplusGroup.DELETE("/:id", middlewares.RbacUserMiddleware(ctx, false, []string{"cooperative:net_surplus:delete"}), netSurplusHandler.DeleteNetSurplusHandler)
 	}
 
