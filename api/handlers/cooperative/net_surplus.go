@@ -1,6 +1,8 @@
 package cooperative_handler
 
 import (
+	"time"
+
 	"github.com/AMETORY/ametory-erp-modules/context"
 	"github.com/AMETORY/ametory-erp-modules/cooperative"
 	"github.com/AMETORY/ametory-erp-modules/shared/models"
@@ -89,8 +91,8 @@ func (h *NetSurplusHandler) UpdateNetSurplusHandler(c *gin.Context) {
 func (h *NetSurplusHandler) DistributeNetSurplusHandler(c *gin.Context) {
 	id := c.Param("id")
 	var input struct {
-		SourceID    string                        `json:"source_id"`
-		Allocations []models.NetSurplusAllocation `json:"allocations"`
+		SourceID    string                        `json:"source_id" binding:"required"`
+		Allocations []models.NetSurplusAllocation `json:"allocations" binding:"required"`
 	}
 	err := c.ShouldBindJSON(&input)
 	if err != nil {
@@ -109,7 +111,33 @@ func (h *NetSurplusHandler) DistributeNetSurplusHandler(c *gin.Context) {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(200, gin.H{"message": "NetSurplus updated successfully"})
+	c.JSON(200, gin.H{"message": "NetSurplus distributed successfully"})
+}
+func (h *NetSurplusHandler) DisbursementeNetSurplusHandler(c *gin.Context) {
+	id := c.Param("id")
+	var input struct {
+		Date          time.Time                 `json:"date" binding:"required"`
+		DestinationID string                    `json:"destination_id" binding:"required"`
+		Members       []models.NetSurplusMember `json:"members" binding:"required"`
+	}
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	netSurplus, err := h.coopertiveSrv.NetSurplusService.GetNetSurplusByID(id, nil)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	userID := c.MustGet("userID").(string)
+	err = h.coopertiveSrv.NetSurplusService.Disbursement(input.Date, input.Members, netSurplus, input.DestinationID, userID, nil)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"message": "NetSurplus disbursement successfully"})
 }
 
 func (h *NetSurplusHandler) DeleteNetSurplusHandler(c *gin.Context) {
