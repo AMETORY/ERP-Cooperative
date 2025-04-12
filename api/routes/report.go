@@ -19,5 +19,9 @@ func SetupReportRoutes(r *gin.RouterGroup, erpContext *context.ERPContext) {
 		reportGroup.POST("/capital-change", reportHandler.CapitalChangeHandler)
 		reportGroup.POST("/cash-flow", reportHandler.CashFlowHandler)
 		reportGroup.POST("/trial-balance", reportHandler.TrialBalanceHandler)
+		reportGroup.GET("/closing-book", reportHandler.GetClosingBooksHandler)
+		reportGroup.POST("/closing-book", reportHandler.CreateClosingBookHandler)
+		reportGroup.GET("/closing-book/:id", reportHandler.GetClosingBookDetailHandler)
+		reportGroup.PUT("/closing-book/:id/generate", reportHandler.GenerateClosingBookHandler)
 	}
 }
