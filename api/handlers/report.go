@@ -115,6 +115,7 @@ func (r *ReportHandler) GenerateClosingBookHandler(c *gin.Context) {
 		RetainEarningId string  `json:"retain_earning_id" binding:"required"`
 		TaxPercentage   float64 `json:"tax_percentage"`
 		TaxPayableId    *string `json:"tax_payable_id"`
+		TaxExpenseID    *string `json:"tax_expense_id"`
 	}{}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -136,15 +137,21 @@ func (r *ReportHandler) GenerateClosingBookHandler(c *gin.Context) {
 
 	userID := c.MustGet("userID").(string)
 
-	r.financeSrv.ReportService.GenerateClosingBook(
+	err = r.financeSrv.ReportService.GenerateClosingBook(
 		report,
 		setting.CashflowGroupSetting,
 		userID,
 		input.Notes,
 		input.RetainEarningId,
 		input.TaxPayableId,
+		input.TaxExpenseID,
 		input.TaxPercentage,
 	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "closing book generated successfully"})
 }
 
 func (r *ReportHandler) GetClosingBookDetailHandler(c *gin.Context) {
