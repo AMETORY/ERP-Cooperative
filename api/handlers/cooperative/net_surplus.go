@@ -113,12 +113,13 @@ func (h *NetSurplusHandler) DistributeNetSurplusHandler(c *gin.Context) {
 	}
 	c.JSON(200, gin.H{"message": "NetSurplus distributed successfully"})
 }
-func (h *NetSurplusHandler) DisbursementeNetSurplusHandler(c *gin.Context) {
+func (h *NetSurplusHandler) DisbursementNetSurplusHandler(c *gin.Context) {
 	id := c.Param("id")
 	var input struct {
 		Date          time.Time                 `json:"date" binding:"required"`
 		DestinationID string                    `json:"destination_id" binding:"required"`
 		Members       []models.NetSurplusMember `json:"members" binding:"required"`
+		Notes         string                    `json:"notes" binding:"required"`
 	}
 	err := c.ShouldBindJSON(&input)
 	if err != nil {
@@ -132,7 +133,7 @@ func (h *NetSurplusHandler) DisbursementeNetSurplusHandler(c *gin.Context) {
 		return
 	}
 	userID := c.MustGet("userID").(string)
-	err = h.coopertiveSrv.NetSurplusService.Disbursement(input.Date, input.Members, netSurplus, input.DestinationID, userID, nil)
+	err = h.coopertiveSrv.NetSurplusService.Disbursement(input.Date, input.Members, netSurplus, input.DestinationID, userID, input.Notes, nil)
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
