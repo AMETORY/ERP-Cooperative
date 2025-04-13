@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"ametory-cooperative/objects"
+	helper "ametory-cooperative/utils"
 	"net/http"
 
 	"github.com/AMETORY/ametory-erp-modules/context"
@@ -47,9 +48,15 @@ func (h *TransactionHandler) GetTransaction(c *gin.Context) {
 }
 
 func (h *TransactionHandler) CreateTransaction(c *gin.Context) {
+	closingBook := c.MustGet("closingBook").(*models.ClosingBook)
+
 	var input objects.TransactionRequest
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if !helper.ValidClosingBook(closingBook, input.Date) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "The date is within a closed book period, and transactions cannot be processed"})
 		return
 	}
 	companyID := c.MustGet("companyID").(string)

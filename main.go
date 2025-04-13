@@ -61,6 +61,8 @@ func main() {
 			"Content-Disposition",
 			"Content-Description",
 			"ID-Company",
+			"start-date",
+			"end-date",
 			"ID-Distributor",
 			"timezone",
 		},

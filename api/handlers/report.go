@@ -111,8 +111,9 @@ func (r *ReportHandler) CapitalChangeHandler(c *gin.Context) {
 
 func (r *ReportHandler) GenerateClosingBookHandler(c *gin.Context) {
 	input := struct {
-		Notes           string  `json:"notes" binding:"required"`
+		Notes           string  `json:"notes"`
 		RetainEarningId string  `json:"retain_earning_id" binding:"required"`
+		ProfitSummaryID string  `json:"profit_summary_id" binding:"required"`
 		TaxPercentage   float64 `json:"tax_percentage"`
 		TaxPayableId    *string `json:"tax_payable_id"`
 		TaxExpenseID    *string `json:"tax_expense_id"`
@@ -143,6 +144,7 @@ func (r *ReportHandler) GenerateClosingBookHandler(c *gin.Context) {
 		userID,
 		input.Notes,
 		input.RetainEarningId,
+		input.ProfitSummaryID,
 		input.TaxPayableId,
 		input.TaxExpenseID,
 		input.TaxPercentage,
@@ -154,6 +156,15 @@ func (r *ReportHandler) GenerateClosingBookHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "closing book generated successfully"})
 }
 
+func (r *ReportHandler) DeleteClosingBooklHandler(c *gin.Context) {
+	id := c.Params.ByName("id")
+	err := r.financeSrv.ReportService.DeleteClosingBook(id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "closing book deleted successfully"})
+}
 func (r *ReportHandler) GetClosingBookDetailHandler(c *gin.Context) {
 	id := c.Params.ByName("id")
 	report, err := r.financeSrv.ReportService.GetClosingBookByID(id)
@@ -237,6 +248,15 @@ func (r *ReportHandler) GetClosingBookDetailHandler(c *gin.Context) {
 			return
 		}
 		report.CapitalChange = capitalChange
+	}
+
+	if report.ClosingSummary == nil {
+		var summary models.ClosingSummary
+
+		summary.TotalIncome = report.ProfitLoss.GrossProfit
+		summary.TotalExpense = report.ProfitLoss.TotalExpense
+		summary.NetIncome = report.ProfitLoss.NetProfit
+		report.ClosingSummary = &summary
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "closing book retrieved successfully", "data": report})
