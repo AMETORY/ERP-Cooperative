@@ -8,6 +8,7 @@ import (
 	"github.com/AMETORY/ametory-erp-modules/context"
 	"github.com/AMETORY/ametory-erp-modules/finance"
 	"github.com/AMETORY/ametory-erp-modules/inventory"
+	"github.com/AMETORY/ametory-erp-modules/shared/models"
 	"github.com/gin-gonic/gin"
 )
 
@@ -238,4 +239,50 @@ func (a *AnalyticHandler) GetWeeklySalesPurchaseReportHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Weekly Sales & Purchase Report retrieved successfully", "data": gin.H{"data": salesPurchase, "title": "Weekly Sales & Purchase"}})
+}
+
+func (a *AnalyticHandler) GetNetWorthHandler(c *gin.Context) {
+	companyID := c.MustGet("companyID").(string)
+	var start, end *time.Time
+	if c.Request.Header.Get("start-date") != "" {
+		startDate, err := time.Parse(time.RFC3339, c.Request.Header.Get("start-date"))
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid start date format"})
+			c.Abort()
+			return
+		}
+		start = &startDate
+	}
+	if c.Request.Header.Get("end-date") != "" {
+		endDate, err := time.Parse(time.RFC3339, c.Request.Header.Get("end-date"))
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid end date format"})
+			c.Abort()
+			return
+		}
+		end = &endDate
+	}
+	report, err := a.financeSrv.ReportService.GenerateProfitLossReport(models.GeneralReport{
+		StartDate: *start,
+		EndDate:   *end,
+		CompanyID: companyID,
+	})
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Net Worth Report retrieved successfully", "data": report})
+}
+
+func (a *AnalyticHandler) GetSumCashBankHandler(c *gin.Context) {
+	companyID := c.MustGet("companyID").(string)
+	data, err := a.financeSrv.ReportService.GetSumCashBank(companyID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Sum of cash and bank retrieved successfully", "data": data})
 }
