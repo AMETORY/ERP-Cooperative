@@ -286,3 +286,25 @@ func (a *AnalyticHandler) GetSumCashBankHandler(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Sum of cash and bank retrieved successfully", "data": data})
 }
+
+func (a *AnalyticHandler) GetSalesPurchaseListHandler(c *gin.Context) {
+
+	companyID := c.MustGet("companyID").(string)
+	interval := c.Query("interval")
+	intervalInt, err := strconv.Atoi(interval)
+	if err != nil {
+		intervalInt = 7
+	}
+
+	sales, err := a.financeSrv.ReportService.GetAlmostDueSales(companyID, intervalInt)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	purchase, err := a.financeSrv.ReportService.GetAlmostDuePurchase(companyID, intervalInt)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Sales and Purchase list retrieved successfully", "data": gin.H{"sales": sales, "purchase": purchase}})
+}

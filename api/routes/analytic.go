@@ -24,5 +24,6 @@ func SetUpAnalyticRoutes(r *gin.RouterGroup, ctx *context.ERPContext) {
 		group.GET("/purchase-time-range", handler.GetPurchaseTimeRangeHandler)
 		group.GET("/net-worth", handler.GetNetWorthHandler)
 		group.GET("/cash-bank", handler.GetSumCashBankHandler)
+		group.GET("/sales-purchase-list", handler.GetSalesPurchaseListHandler)
 	}
 }
