@@ -81,6 +81,7 @@ func (a AppService) GenerateDefaultPermissions() []models.PermissionModel {
 				{"report": cruds},
 				{"bank": cruds},
 				{"tax": cruds},
+				{"asset": append(cruds, "apply", "activate", "deactivate")},
 				{"report": []string{
 					"menu",
 					"cash_flow",
@@ -152,6 +153,7 @@ func (a AppService) GenerateAdminPermissions() []models.PermissionModel {
 			},
 			"finance": {
 				{"account": cruds},
+				{"asset": append(cruds, "apply", "activate", "deactivate")},
 				{"transaction": cruds},
 				{"journal": cruds},
 				{"report": cruds},
