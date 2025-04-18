@@ -1,6 +1,9 @@
 package handlers
 
 import (
+	"ametory-cooperative/objects"
+	"time"
+
 	"github.com/AMETORY/ametory-erp-modules/context"
 	"github.com/AMETORY/ametory-erp-modules/finance"
 	"github.com/AMETORY/ametory-erp-modules/shared/models"
@@ -39,6 +42,9 @@ func (a *AssetHandler) GetAssetHandler(c *gin.Context) {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
+
+	a.financeSrv.AssetService.GetDepreciation(asset)
+
 	c.JSON(200, gin.H{"data": asset})
 }
 
@@ -80,4 +86,71 @@ func (a *AssetHandler) DeleteAssetHandler(c *gin.Context) {
 		return
 	}
 	c.JSON(200, gin.H{"data": nil})
+}
+
+func (a *AssetHandler) PreviewHandler(c *gin.Context) {
+	id := c.Param("id")
+	asset, err := a.financeSrv.AssetService.GetAssetByID(id)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	mode := c.Query("mode")
+	isMonthly := c.DefaultQuery("is_monthly", "false")
+	asset.DepreciationMethod = mode
+	asset.IsMonthly = isMonthly == "true"
+	preview, err := a.financeSrv.AssetService.PreviewCosts(asset)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"data": preview})
+}
+
+func (a *AssetHandler) ActivateHandler(c *gin.Context) {
+	id := c.Param("id")
+
+	input := objects.DepreciationRequest{}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+	asset, err := a.financeSrv.AssetService.GetAssetByID(id)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	userID := c.MustGet("userID").(string)
+	asset.DepreciationMethod = input.DepreciationMethod
+	asset.AccountCurrentAssetID = &input.AccountCurrentAssetID
+	asset.AccountFixedAssetID = &input.AccountFixedAssetID
+	asset.AccountDepreciationID = &input.AccountDepreciationID
+	asset.AccountAccumulatedDepreciationID = &input.AccountAccumulatedDepreciationID
+	asset.IsMonthly = input.IsMonthly
+	asset.Date = input.Date
+	asset.Depreciations = input.DepreciationCosts
+	if err := a.financeSrv.AssetService.ActivateAsset(asset, asset.Date, userID); err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(200, gin.H{"data": nil, "message": "Asset activated successfully"})
+}
+
+func (a *AssetHandler) DepreciationApplyHandler(c *gin.Context) {
+	id := c.Param("id")
+	itemId := c.Param("itemId")
+
+	asset, err := a.financeSrv.AssetService.GetAssetByID(id)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	userID := c.MustGet("userID").(string)
+	err = a.financeSrv.AssetService.DepreciationApply(asset, itemId, time.Now(), userID)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"data": nil, "message": "Asset depreciation applied successfully"})
 }

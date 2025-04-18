@@ -15,6 +15,9 @@ func SetupAssetRoutes(r *gin.RouterGroup, erpContext *context.ERPContext) {
 	{
 		assetGroup.GET("/list", handler.GetAssetListHandler)
 		assetGroup.GET("/:id", handler.GetAssetHandler)
+		assetGroup.GET("/:id/preview", handler.PreviewHandler)
+		assetGroup.PUT("/:id/activate", handler.ActivateHandler)
+		assetGroup.PUT("/:id/apply/:itemId", handler.DepreciationApplyHandler)
 		assetGroup.POST("/create", handler.CreateAssetHandler)
 		assetGroup.PUT("/:id", handler.UpdateAssetHandler)
 		assetGroup.DELETE("/:id", handler.DeleteAssetHandler)
