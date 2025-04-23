@@ -6,6 +6,7 @@ type AppModel struct {
 	AppKey  string `gorm:"type:varchar(255)" json:"app_key"`
 	Version string `gorm:"type:varchar(255)" json:"version"`
 	Build   string `gorm:"type:varchar(255)" json:"build"`
+	IsSaas  bool   `gorm:"default:false" json:"is_saas"`
 }
 
 func (AppModel) TableName() string {

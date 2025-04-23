@@ -46,6 +46,8 @@ func main() {
 		AllowOrigins: []string{
 			"http://localhost:3035",
 			"http://localhost:3035/",
+			"https://new-jaraya.web.app",
+			"https://new.jaraya.id",
 		},
 		AllowMethods: []string{"PUT", "PATCH", "GET", "POST", "DELETE", "HEAD"},
 		AllowHeaders: []string{
