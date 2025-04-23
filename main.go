@@ -154,6 +154,7 @@ func main() {
 	routes.SetupCooperativeRoutes(v1, erpContext)
 	routes.SetUpAnalyticRoutes(v1, erpContext)
 	routes.SetupAssetRoutes(v1, erpContext)
+	routes.SetupStockOpnameRoutes(v1, erpContext)
 
 	go func() {
 		workers.SendMail(erpContext)
