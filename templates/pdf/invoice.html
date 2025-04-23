@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Invoice</title>
+    <style>
+        /* @import url('https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap'); */
+
+        * {
+            font-family: 'Arial', sans-serif;
+        }
+
+
+        body {
+            font-family: 'Arial', sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            color: #333;
+            background-color: #fff;
+            
+        }
+
+
+        p {
+            margin-bottom: 0;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            margin-top: 0;
+        }
+
+        p {
+            margin-bottom: 20px;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: 8px;
+            vertical-align: top;
+            padding: 8px;
+        }
+
+
+        th {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <table style="width: 100%">
+            <tr valign="top">
+                {{ if .ShowCompany }}
+                <td style="width: 50%">
+                    <div style="font-size: 24px; font-weight: 700">{{ .Company.Name }}</div>
+                    <div>{{ .Company.Address }} {{ .Company.Phone }} {{ .Company.Email }}</div>
+                </td>
+                {{ end }}
+                <td>
+                    <h1 style="margin-bottom: 0; margin-top: 0;">Invoice #{{ .Number }}</h1>
+                    <div>Date: {{ .Date }}</div>
+                    <div>Due Date: {{ .DueDate }}</div>
+                </td>
+            </tr>
+        </table>
+        <table style="width: 100%">
+            <tr>
+                <td style="width: 50%">
+                    <h3 style="margin-bottom: 0; margin-top: 0">Billed To</h3>
+                    <div>{{ .BilledTo.Name }}</div>
+                    <div>{{ .BilledTo.Address }} {{ .BilledTo.Phone }} {{ .BilledTo.Email }}</div>
+                </td>
+                {{ if .ShowShipped }}
+                <td>
+                    {{ if ne .ShippedTo.Name ""}}
+                    <h3 style="margin-bottom: 0; margin-top: 0">Shipped To</h3>
+                    <div>{{ .ShippedTo.Name }}</div>
+                    <div>{{ .ShippedTo.Address }} {{ .ShippedTo.Phone }} {{ .ShippedTo.Email }}</div>
+                    {{ end }}
+                </td>
+                {{ end }}
+
+            </tr>
+        </table>
+
+        <table style="margin-top: 20px;">
+            <tr>
+                <th style="width: 10%;">No</th>
+                <th>Nama Produk</th>
+                <th>Harga</th>
+                <th>Qty</th>
+                <th>Sub Total</th>
+                <th>Disc</th>
+                <th>Tax</th>
+                <th>Subtotal</th>
+            </tr>
+            {{ range .Items }}
+            <tr>
+                <td>{{ .No }}</td>
+                <td>
+                    {{ .Description }}
+                    {{ if .Notes }}
+                    <br /><small>{{ .Notes }}</small>
+                    {{ end }}
+
+                </td>
+                <td>{{ .UnitPrice }}</td>
+                <td>{{ .Quantity }}{{ .UnitName }}</td>
+                <td>{{ .SubtotalBeforeDisc }}</td>
+                <td>
+                    {{ if ne .TotalDiscount "0" }}
+                    <span>{{ .TotalDiscount }}<br /> <small>({{ .DiscountPercent}}%)</small></span>
+                    {{ end }}
+
+                </td>
+                <td>
+                    {{ if ne .TaxAmount "0" }}
+                    <span>{{ .TaxAmount }}<br /> <small>({{ .TaxName }}{{ .TaxPercent}}%)</small></span>
+                    {{ end }}
+
+                </td>
+                <td>
+                    {{ .Total }}
+                    {{ if ne .Total .SubTotal }}
+                    <small><br />Before Tax : {{ .SubTotal }}</small>
+                    {{ end }}
+                </td>
+            </tr>
+            {{ end }}
+            <tr style="font-size: 10pt">
+                <td colspan="7" style="text-align:right; font-weight: 700;">Sub Total</td>
+                <td>{{ .SubTotal }}</td>
+            </tr>
+            {{ if ne .TotalDiscount "0" }}
+            <tr style="font-size: 10pt">
+                <td colspan="7" style="text-align:right; font-weight: 700;">Total Disc.</td>
+                <td>{{ .TotalDiscount }}</td>
+            </tr>
+            {{ end }}
+            {{ if ne .AfterDiscount "0" }}
+            <tr style="font-size: 10pt">
+                <td colspan="7" style="text-align:right; font-weight: 700;">After Disc.</td>
+                <td>{{ .AfterDiscount }}</td>
+            </tr>
+            {{ end }}
+            {{ if ne .TotalTax "0" }}
+            <tr style="font-size: 10pt">
+                <td colspan="7" style="text-align:right; font-weight: 700;">Total Tax</td>
+                <td>{{ .TotalTax }}</td>
+            </tr>
+            {{ end }}
+            <tr style="font-size: 12pt">
+                <td colspan="7" style="text-align:right; font-weight: 700;">Total</td>
+                <td>{{ .GrandTotal }}</td>
+            </tr>
+            {{ if ne .Paid "0" }}
+            <tr style="font-size: 10pt">
+                <td colspan="7" style="text-align:right; font-weight: 700;">Paid</td>
+                <td>{{ .Paid }}</td>
+            </tr>
+            {{ end }}
+            {{ if ne .Balance "0" }}
+            <tr style="font-size: 10pt">
+                <td colspan="7" style="text-align:right; font-weight: 700;">Balance</td>
+                <td>{{ .Balance }}</td>
+            </tr>
+            {{ end }}
+
+            {{ if gt (len .InvoicePayments) 0 }}
+            <tr>
+                <td colspan="8" style="text-align:center; font-weight: 700;">Payment History</td>
+            </tr>
+            <tr>
+                <th colspan="4">Date</th>
+                <th>Disc.</th>
+                <th colspan="2">Payment Method</th>
+                <th >Amount</th>
+            </tr>
+            {{ range .InvoicePayments }}
+            <tr>
+                <td colspan="4"><small style="font-weight: 700;">{{ .Date }}</small> <br/> {{ .Description }}</td>
+                <td >{{ .PaymentDiscount }}</td>
+                <td colspan="2">{{ .PaymentMethod }}
+                    {{ if ne .PaymentMethodNotes "" }}
+                    <br /><small>{{ .PaymentMethodNotes }}</small>
+                    {{ end }}
+                </td>
+                <td >{{ .Amount }}</td>
+            </tr>
+            {{ end }}
+            {{ end }}
+        </table>
+    </div>
+</body>
+
+</html>

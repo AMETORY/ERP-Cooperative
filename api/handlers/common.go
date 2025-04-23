@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"ametory-cooperative/app_models"
+	"ametory-cooperative/config"
 	"ametory-cooperative/objects"
 	"ametory-cooperative/services"
 	"encoding/json"
@@ -265,7 +266,7 @@ func (h *CommonHandler) UploadFileHandler(c *gin.Context) {
 	fileObject.RefType = refType
 	fileObject.SkipSave = skipSave
 
-	if err := h.fileService.UploadFile(fileByte, "local", "files", &fileObject); err != nil {
+	if err := h.fileService.UploadFile(fileByte, config.App.Server.StorageProvider, "files", &fileObject); err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}

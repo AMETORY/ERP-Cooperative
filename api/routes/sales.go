@@ -15,6 +15,7 @@ func SetupSalesRoutes(r *gin.RouterGroup, erpContext *context.ERPContext) {
 	{
 		salesGroup.GET("/list", middlewares.RbacUserMiddleware(erpContext, false, []string{"order:sales:read"}), salesHandler.GetSalesHandler)
 		salesGroup.GET("/:id", middlewares.RbacUserMiddleware(erpContext, false, []string{"order:sales:read"}), salesHandler.GetSalesByIdHandler)
+		salesGroup.GET("/:id/pdf", middlewares.RbacUserMiddleware(erpContext, false, []string{"order:sales:read"}), salesHandler.DownloadPdfHandler)
 		salesGroup.POST("/create", middlewares.RbacUserMiddleware(erpContext, false, []string{"order:sales:create"}), salesHandler.CreateSalesHandler)
 		salesGroup.PUT("/:id", middlewares.RbacUserMiddleware(erpContext, false, []string{"order:sales:update"}), salesHandler.UpdateSalesHandler)
 		salesGroup.PUT("/:id/add-item", middlewares.RbacUserMiddleware(erpContext, false, []string{"order:sales:update"}), salesHandler.AddItemHandler)
