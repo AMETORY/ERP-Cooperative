@@ -9,4 +9,5 @@ type ServerConfig struct {
 	StorageProvider string `mapstructure:"storage_provider"`
 	Debug           bool   `mapstructure:"debug"`
 	TokenExpiredDay int    `mapstructure:"token_expired_day"`
+	UsedBasedQuota  bool   `mapstructure:"used_based_quota"`
 }

@@ -86,6 +86,11 @@ func AuthMiddleware(ctx *context.ERPContext, checkCompany bool) gin.HandlerFunc 
 			}
 		}
 
+		if !config.App.Server.UsedBasedQuota {
+			c.Next()
+			return
+		}
+
 		company := app_models.CustomSettingModel{}
 		ctx.DB.Find(&company, "id = ?", c.Request.Header.Get("ID-Company"))
 
