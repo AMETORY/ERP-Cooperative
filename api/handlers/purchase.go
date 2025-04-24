@@ -69,8 +69,13 @@ func (s *PurchaseHandler) CreatePurchaseHandler(c *gin.Context) {
 
 	b, _ := json.Marshal(*contact)
 
+	purchaseNumber := input.PurchaseNumber
+	if purchaseNumber == "" {
+		purchaseNumber = GenerateAutoNumber(s.ctx.DB, c.MustGet("companyID").(string), string(input.DocumentType))
+	}
+
 	var data models.PurchaseOrderModel = models.PurchaseOrderModel{
-		PurchaseNumber:   input.PurchaseNumber,
+		PurchaseNumber:   purchaseNumber,
 		Code:             utils.RandString(8, false),
 		Description:      input.Description,
 		Notes:            input.Notes,

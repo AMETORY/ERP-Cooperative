@@ -91,7 +91,7 @@ func (p *StockOpnameHandler) DeleteStockOpnameHandler(c *gin.Context) {
 	// if stockOpname.CompanyID == nil {
 	// 	c.JSON(403, gin.H{"error": "You do not have permission to delete this stockOpname"})
 	// }
-	err = p.inventorySrv.StockOpnameService.DeleteStockOpname(stockOpname.ID, true)
+	err = p.inventorySrv.StockOpnameService.DeleteStockOpname(stockOpname.ID, false)
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
@@ -109,7 +109,7 @@ func (p *StockOpnameHandler) CompleteStockOpnameHandler(c *gin.Context) {
 	}
 
 	userID := c.MustGet("userID").(string)
-	err = p.inventorySrv.StockOpnameService.CompleteStockOpname(id, input.Date, userID, input.InventoryID, input.ExpenseID, input.RevenueID)
+	err = p.inventorySrv.StockOpnameService.CompleteStockOpname(id, input.Date, userID, input.InventoryID)
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return

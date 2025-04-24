@@ -100,12 +100,12 @@ func (h *AccountHandler) GetAccountHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
+	companyID := c.MustGet("companyID").(string)
 	newItems := make([]models.AccountModel, 0)
 	items := data.Items.(*[]models.AccountModel)
 	now := time.Now().AddDate(0, 0, 1)
 	for _, item := range *items {
-		debit, credit, _ := h.financeSrv.ReportService.GetAccountBalance(item.ID, nil, &now)
+		debit, credit, _ := h.financeSrv.ReportService.GetAccountBalance(item.ID, &companyID, nil, &now)
 		switch item.Type {
 		case models.EXPENSE, models.COST, models.CONTRA_LIABILITY, models.CONTRA_EQUITY, models.CONTRA_REVENUE, models.RECEIVABLE:
 			item.Balance = debit - credit
@@ -124,7 +124,8 @@ func (h *AccountHandler) GetAccountHandler(c *gin.Context) {
 
 func (h *AccountHandler) GetAccountReportHandler(c *gin.Context) {
 	id := c.Param("id")
-	data, err := h.financeSrv.ReportService.GenerateAccountReport(id, *c.Request)
+	companyID := c.MustGet("companyID").(string)
+	data, err := h.financeSrv.ReportService.GenerateAccountReport(id, &companyID, *c.Request)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

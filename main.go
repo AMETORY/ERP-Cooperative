@@ -7,6 +7,9 @@ import (
 	"ametory-cooperative/workers"
 	"net/mail"
 	"os"
+	"os/exec"
+	"runtime"
+	"strings"
 
 	ctx "context"
 
@@ -28,7 +31,17 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+var BuildMachineID string
+
 func main() {
+
+	if BuildMachineID != "" {
+		currentID := getCurrentMachineID()
+		if currentID != BuildMachineID {
+			panic("This binary is not allowed to run on this machine.")
+		}
+	}
+
 	ctx := ctx.Background()
 	cfg, err := config.InitConfig()
 	if err != nil {
@@ -204,4 +217,34 @@ func main() {
 	}
 
 	r.Run(":" + config.App.Server.Port)
+}
+
+func getCurrentMachineID() string {
+	switch runtime.GOOS {
+	case "linux":
+		// Linux pakai UUID dari DMI
+		out, err := exec.Command("cat", "/sys/class/dmi/id/product_uuid").Output()
+		if err != nil {
+			return ""
+		}
+		return strings.TrimSpace(string(out))
+
+	case "darwin":
+		// macOS pakai IOPlatformUUID
+		out, err := exec.Command("ioreg", "-rd1", "-c", "IOPlatformExpertDevice").Output()
+		if err != nil {
+			return ""
+		}
+		lines := strings.Split(string(out), "\n")
+		for _, line := range lines {
+			if strings.Contains(line, "IOPlatformUUID") {
+				parts := strings.Split(line, "\"")
+				if len(parts) > 3 {
+					return parts[3]
+				}
+			}
+		}
+	}
+
+	return ""
 }

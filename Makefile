@@ -16,3 +16,12 @@ deploy-prod:build
 
 discord-notif:
 	curl -H "Content-Type: application/json" -X POST $(discordHook) -d '{"avatar_url": "https://new-jaraya.web.app/android-chrome-512x512.png", "embeds":[{"title":"New deployment to ${stage}","description":"Deployed at ${datetimeFormat}","color":101946, "fields":[{"name":"Author","value":"`jaraya-DEPLOYER`","inline":true}]}]}'
+
+build-onpremis:
+	@echo "Building Go Lambda function"
+	go build -ldflags "-X main.BuildMachineID=$(UUID)" 
+
+build-onpremis-linux:
+	@echo "Building Go Lambda function for on-premises"
+	@gox -os="linux" -arch="amd64" -output="new_jaraya" -ldflags "-X main.BuildMachineID=$(UUID)"
+
