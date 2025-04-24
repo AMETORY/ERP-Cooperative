@@ -84,6 +84,12 @@ func main() {
 	fileService := file.NewFileService(erpContext, cfg.Server.BaseURL)
 	erpContext.FileService = fileService
 
+	FirestoreSrv, err := thirdparty.NewFirebaseApp(*erpContext.Ctx, cfg.Firebase.CredentialPath, cfg.Firebase.Bucket)
+	if err != nil {
+		panic(err)
+	}
+	erpContext.Firestore = FirestoreSrv
+
 	companyService := company.NewCompanyService(erpContext)
 	erpContext.CompanyService = companyService
 

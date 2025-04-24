@@ -12,6 +12,7 @@ type Config struct {
 	Email    EmailConfig
 	Google   GoogleConfig
 	Whatsapp WhatsappConfig
+	Firebase FirebaseConfig
 }
 
 var App = &Config{}

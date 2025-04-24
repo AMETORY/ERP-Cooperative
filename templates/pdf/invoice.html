@@ -155,10 +155,12 @@
             </tr>
             {{ end }}
             {{ if ne .AfterDiscount "0" }}
+            {{ if ne .AfterDiscount .SubTotal }}
             <tr style="font-size: 10pt">
                 <td colspan="7" style="text-align:right; font-weight: 700;">After Disc.</td>
                 <td>{{ .AfterDiscount }}</td>
             </tr>
+            {{ end }}
             {{ end }}
             {{ if ne .TotalTax "0" }}
             <tr style="font-size: 10pt">
@@ -177,10 +179,12 @@
             </tr>
             {{ end }}
             {{ if ne .Balance "0" }}
+            {{ if ne .Balance .GrandTotal }}
             <tr style="font-size: 10pt">
                 <td colspan="7" style="text-align:right; font-weight: 700;">Balance</td>
                 <td>{{ .Balance }}</td>
             </tr>
+            {{ end }}
             {{ end }}
 
             {{ if gt (len .InvoicePayments) 0 }}

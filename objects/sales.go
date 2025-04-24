@@ -7,7 +7,7 @@ import (
 )
 
 type SalesRequest struct {
-	SalesNumber      string                  `json:"sales_number" binding:"required"`
+	SalesNumber      string                  `json:"sales_number" `
 	Code             string                  `json:"code"`
 	Description      string                  `json:"description"`
 	Notes            string                  `json:"notes"`

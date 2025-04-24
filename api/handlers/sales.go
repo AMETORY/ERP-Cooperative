@@ -69,8 +69,12 @@ func (s *SalesHandler) CreateSalesHandler(c *gin.Context) {
 
 	b, _ := json.Marshal(*contact)
 
+	salesNumber := input.SalesNumber
+	if salesNumber == "" {
+		salesNumber = GenerateAutoNumber(s.ctx.DB, c.MustGet("companyID").(string), string(input.DocumentType))
+	}
 	var data models.SalesModel = models.SalesModel{
-		SalesNumber:      input.SalesNumber,
+		SalesNumber:      salesNumber,
 		Code:             utils.RandString(8, false),
 		Description:      input.Description,
 		Notes:            input.Notes,
