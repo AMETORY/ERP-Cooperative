@@ -24,6 +24,6 @@ func SetupPurchaseRoutes(r *gin.RouterGroup, erpContext *context.ERPContext) {
 		group.DELETE("/:id/delete-item/:itemId", middlewares.RbacUserMiddleware(erpContext, false, []string{"inventory:purchase:update"}), handler.DeleteItemHandler)
 		group.PUT("/:id/update-item/:itemId", middlewares.RbacUserMiddleware(erpContext, false, []string{"inventory:purchase:update"}), handler.UpdateItemHandler)
 		group.GET("/:id/items", middlewares.RbacUserMiddleware(erpContext, false, []string{"inventory:purchase:read"}), handler.GetItemsHandler)
-		group.DELETE("/delete/:id", handler.DeletePurchaseHandler)
+		group.DELETE("/:id", middlewares.RbacUserMiddleware(erpContext, false, []string{"inventory:purchase:delete"}), handler.DeletePurchaseHandler)
 	}
 }
