@@ -22,6 +22,7 @@ import (
 	"github.com/AMETORY/ametory-erp-modules/file"
 	"github.com/AMETORY/ametory-erp-modules/finance"
 	"github.com/AMETORY/ametory-erp-modules/inventory"
+	"github.com/AMETORY/ametory-erp-modules/manufacture"
 	"github.com/AMETORY/ametory-erp-modules/order"
 	"github.com/AMETORY/ametory-erp-modules/shared/audit_trail"
 	"github.com/AMETORY/ametory-erp-modules/shared/indonesia_regional"
@@ -131,6 +132,9 @@ func main() {
 
 	inventorySrv = inventory.NewInventoryService(erpContext)
 	erpContext.InventoryService = inventorySrv
+
+	manufactureSrv := manufacture.NewManufactureService(erpContext, inventorySrv)
+	erpContext.ManufactureService = manufactureSrv
 
 	contactSrv := contact.NewContactService(erpContext, companyService)
 	erpContext.ContactService = contactSrv
