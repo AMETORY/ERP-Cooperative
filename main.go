@@ -5,6 +5,7 @@ import (
 	"ametory-cooperative/config"
 	"ametory-cooperative/services"
 	"ametory-cooperative/workers"
+	"fmt"
 	"net/mail"
 	"os"
 	"os/exec"
@@ -28,6 +29,7 @@ import (
 	"github.com/AMETORY/ametory-erp-modules/shared/indonesia_regional"
 	"github.com/AMETORY/ametory-erp-modules/shared/models"
 	"github.com/AMETORY/ametory-erp-modules/thirdparty"
+	"github.com/AMETORY/ametory-erp-modules/thirdparty/google"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
@@ -149,6 +151,55 @@ func main() {
 	emailSender.SetTemplate("./templates/email/layout.html", "./templates/email/body.html")
 
 	erpContext.EmailSender = emailSender
+
+	if appService.App.GeminiAPIKey != "" {
+		geminiExpertSrv := google.NewGeminiService(erpContext, cfg.Google.GeminiAPIKey)
+		geminiExpertSrv.SetupModel(
+			1,
+			40,
+			0.95,
+			8192,
+			"application/json",
+			"gemini-2.0-flash-exp",
+		)
+		// geminiExpertSrv.SetUpSystemInstruction("")
+		erpContext.AddThirdPartyService("GEMINI_EXPERT", geminiExpertSrv)
+		geminiSrv := google.NewGeminiService(erpContext, cfg.Google.GeminiAPIKey)
+		geminiSrv.SetupModel(
+			1,
+			40,
+			0.95,
+			8192,
+			"application/json",
+			"gemini-2.0-flash-exp",
+		)
+
+		geminiSrv.SetUpSystemInstruction(appService.App.AsyaSystemInstruction)
+		erpContext.AddThirdPartyService("GEMINI", geminiSrv)
+
+		//
+
+		if os.Getenv("ASYA") != "" {
+			// Get argument from CLI without flag
+			args := os.Args
+			if len(args) > 1 {
+				arg := args[1]
+				// Use the argument 'arg' as needed
+				fmt.Println("Argument from CLI:", arg)
+				resp, err := geminiExpertSrv.GenerateContent(ctx, arg, []map[string]any{}, "", "")
+
+				if err != nil {
+					panic(err)
+				}
+				fmt.Println(resp)
+
+			} else {
+				fmt.Println("No argument provided")
+			}
+
+			os.Exit(0)
+		}
+	}
 
 	v1 := r.Group("/api/v1")
 

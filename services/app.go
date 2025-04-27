@@ -22,6 +22,7 @@ type AppService struct {
 	Config    *config.Config
 	Redis     *redis.Client
 	Websocket *melody.Melody
+	App       *app_models.AppModel
 }
 
 func NewAppService(ctx *context.ERPContext, config *config.Config, redis *redis.Client, ws *melody.Melody) *AppService {
@@ -31,11 +32,14 @@ func NewAppService(ctx *context.ERPContext, config *config.Config, redis *redis.
 			&app_models.CustomSettingModel{},
 		)
 	}
+	var app *app_models.AppModel
+	ctx.DB.First(&app)
 	return &AppService{
 		ctx:       ctx,
 		Config:    config,
 		Redis:     redis,
 		Websocket: ws,
+		App:       app,
 	}
 }
 
