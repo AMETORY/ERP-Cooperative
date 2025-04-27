@@ -186,7 +186,7 @@ func main() {
 				arg := args[1]
 				// Use the argument 'arg' as needed
 				fmt.Println("Argument from CLI:", arg)
-				resp, err := geminiExpertSrv.GenerateContent(ctx, arg, []map[string]any{}, "", "")
+				resp, err := geminiSrv.GenerateContent(ctx, arg, []map[string]any{}, "", "")
 
 				if err != nil {
 					panic(err)
