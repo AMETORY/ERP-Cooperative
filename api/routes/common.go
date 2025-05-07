@@ -12,6 +12,7 @@ func SetupCommonRoutes(r *gin.RouterGroup, erpContext *context.ERPContext) {
 	commonHandler := handlers.NewCommonHandler(erpContext)
 	{
 		r.POST("/file/upload", middlewares.AuthMiddleware(erpContext, false), commonHandler.UploadFileHandler)
+		r.POST("/file/upload-base64", middlewares.AuthMiddleware(erpContext, false), commonHandler.UploadFileFromBase64Handler)
 		r.GET("/company/users", middlewares.AuthMiddleware(erpContext, false), commonHandler.GetCompanyUsersHandler)
 		r.PUT("/user/:id/role", middlewares.AuthMiddleware(erpContext, false), commonHandler.UpdateRoleHandler)
 		r.DELETE("/user/:id", middlewares.AuthMiddleware(erpContext, false), commonHandler.DeleteUserHandler)

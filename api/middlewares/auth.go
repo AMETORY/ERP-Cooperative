@@ -78,6 +78,15 @@ func AuthMiddleware(ctx *context.ERPContext, checkCompany bool) gin.HandlerFunc 
 		c.Set("user", user)
 		c.Set("member", member)
 		c.Set("memberID", member.ID)
+		var merchant *models.MerchantModel
+		if c.Request.Header.Get("ID-Merchant") != "" {
+			var merch models.MerchantModel
+			ctx.DB.Find(&merch, "id = ?", c.Request.Header.Get("ID-Merchant"))
+			merchant = &merch
+
+		}
+
+		c.Set("merchant", merchant)
 
 		for _, path := range exceptionPaths {
 			if c.Request.URL.Path == path {

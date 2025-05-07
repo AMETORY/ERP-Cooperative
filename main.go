@@ -30,6 +30,7 @@ import (
 	"github.com/AMETORY/ametory-erp-modules/shared/models"
 	"github.com/AMETORY/ametory-erp-modules/thirdparty"
 	"github.com/AMETORY/ametory-erp-modules/thirdparty/google"
+	"github.com/AMETORY/ametory-erp-modules/user"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
@@ -112,6 +113,9 @@ func main() {
 
 	rbacSrv := auth.NewRBACService(erpContext)
 	erpContext.RBACService = rbacSrv
+
+	userSrv := user.NewUserService(erpContext)
+	erpContext.UserService = userSrv
 
 	financeSrv := finance.NewFinanceService(erpContext)
 	erpContext.FinanceService = financeSrv
@@ -233,6 +237,7 @@ func main() {
 	routes.SetupAssetRoutes(v1, erpContext)
 	routes.SetupStockOpnameRoutes(v1, erpContext)
 	routes.SetupRoleRoutes(v1, erpContext)
+	routes.SetupUserRoutes(v1, erpContext)
 
 	go func() {
 		workers.SendMail(erpContext)

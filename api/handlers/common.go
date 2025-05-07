@@ -303,6 +303,41 @@ func (h *CommonHandler) AcceptMemberInvitationHandler(c *gin.Context) {
 	c.JSON(200, gin.H{"message": "Member invitation accepted successfully"})
 }
 
+func (h *CommonHandler) UploadFileFromBase64Handler(c *gin.Context) {
+	var input struct {
+		FileName string `json:"fileName"`
+		Base64   string `json:"base64"`
+	}
+	if err := c.BindJSON(&input); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+	h.ctx.Request = c.Request
+
+	fileObject := models.FileModel{}
+	refID, _ := c.GetPostForm("ref_id")
+	refType, _ := c.GetPostForm("ref_type")
+	skipSave := false
+	skipSaveStr, _ := c.GetPostForm("skip_save")
+	if skipSaveStr == "true" || skipSaveStr == "1" {
+		skipSave = true
+	}
+
+	filename := utils.GenerateRandomNumber(6)
+
+	fileObject.FileName = utils.FilenameTrimSpace(filename)
+	fileObject.RefID = refID
+	fileObject.RefType = refType
+	fileObject.SkipSave = skipSave
+	err := h.fileService.UploadFileFromBase64(input.Base64, config.App.Server.StorageProvider, "files", &fileObject)
+	if err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(200, gin.H{"message": "File uploaded successfully", "data": fileObject})
+}
+
 func (h *CommonHandler) UploadFileHandler(c *gin.Context) {
 	h.ctx.Request = c.Request
 
