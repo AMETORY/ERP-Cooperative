@@ -47,6 +47,17 @@ func (p *ProductHandler) GetProductVariantHandler(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Product variant retrieved successfully", "data": data})
 }
+
+func (p *ProductHandler) DeleteProductUnitHandler(c *gin.Context) {
+	id := c.Param("id")
+	unitId := c.Param("unitId")
+	err := p.inventorySrv.ProductService.DeleteProductUnit(id, unitId)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Product unit deleted successfully"})
+}
 func (p *ProductHandler) AddProductUnitHandler(c *gin.Context) {
 	id := c.Param("id")
 	product, err := p.inventorySrv.ProductService.GetProductByID(id, c.Request)

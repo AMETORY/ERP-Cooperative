@@ -27,4 +27,5 @@ type SalesRequest struct {
 	TermCondition    string                  `json:"term_condition"`
 	DeliveryID       *string                 `json:"delivery_id"`
 	DeliveryData     string                  `gorm:"type:json" json:"delivery_data"`
+	SalesUserID      *string                 `json:"sales_user_id,omitempty" gorm:"size:36"`
 }

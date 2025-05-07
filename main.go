@@ -60,10 +60,11 @@ func main() {
 
 	r.Use(cors.New(cors.Config{
 		AllowOrigins: []string{
+			"http://localhost:3036",
 			"http://localhost:3035",
-			"http://localhost:3035/",
 			"https://new-jaraya.web.app",
 			"https://new.jaraya.id",
+			"https://dc-logistik.web.app",
 		},
 		AllowMethods: []string{"PUT", "PATCH", "GET", "POST", "DELETE", "HEAD"},
 		AllowHeaders: []string{
@@ -231,6 +232,7 @@ func main() {
 	routes.SetUpAnalyticRoutes(v1, erpContext)
 	routes.SetupAssetRoutes(v1, erpContext)
 	routes.SetupStockOpnameRoutes(v1, erpContext)
+	routes.SetupRoleRoutes(v1, erpContext)
 
 	go func() {
 		workers.SendMail(erpContext)

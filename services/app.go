@@ -56,6 +56,7 @@ func (a AppService) GenerateDefaultPermissions() []models.PermissionModel {
 			},
 			"company": {
 				{"company": append(cruds, "approval")},
+				{"user": []string{"invite"}},
 			},
 			"order": {
 				{"sales": append(cruds, "approval", "publish")},

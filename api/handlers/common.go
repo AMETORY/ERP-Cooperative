@@ -116,6 +116,66 @@ func (h *CommonHandler) DeleteInvitedHandler(c *gin.Context) {
 	c.JSON(200, gin.H{"message": "Invitation deleted successfully"})
 }
 
+func (h *CommonHandler) DeleteUserHandler(c *gin.Context) {
+	userID := c.Param("id")
+	companyID := c.MustGet("companyID").(string)
+	var user models.UserModel
+	err := h.ctx.DB.Preload("Roles", "company_id = ?", companyID).First(&user, "id = ? ", userID).Error
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	var company models.CompanyModel
+	err = h.ctx.DB.First(&company, "id = ? ", companyID).Error
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	for _, role := range user.Roles {
+		h.ctx.DB.Model(&user).Association("Roles").Delete(role)
+	}
+
+	err = h.ctx.DB.Model(&company).Association("Users").Delete(user)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"message": "User deleted successfully"})
+}
+func (h *CommonHandler) UpdateRoleHandler(c *gin.Context) {
+	id := c.Param("id")
+	var input models.RoleModel
+	err := c.BindJSON(&input)
+	if err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+	companyID := c.MustGet("companyID").(string)
+	var user models.UserModel
+	err = h.ctx.DB.Preload("Roles", "company_id = ?", companyID).Where("id = ?", id).First(&user).Error
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	for _, role := range user.Roles {
+		h.ctx.DB.Model(&user).Association("Roles").Delete(role)
+	}
+	h.ctx.DB.Model(&user).Association("Roles").Append(&input)
+	c.JSON(200, gin.H{"message": "Role updated successfully"})
+
+}
+func (h *CommonHandler) GetCompanyUsersHandler(c *gin.Context) {
+	companyID := c.MustGet("companyID").(string)
+	users, err := h.companyService.GetCompanyUsers(companyID, *c.Request)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"data": users})
+
+}
 func (h *CommonHandler) InviteMemberHandler(c *gin.Context) {
 	var input struct {
 		FullName  string  `json:"full_name"`
@@ -218,12 +278,6 @@ func (h *CommonHandler) AcceptMemberInvitationHandler(c *gin.Context) {
 	var invitation models.MemberInvitationModel
 	h.ctx.DB.Where("token = ?", token).First(&invitation)
 
-	err := h.cooperativeSrv.CooperativeMemberService.AcceptMemberInvitation(token, invitation.UserID)
-	if err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
-		return
-	}
-
 	var user models.UserModel
 	h.ctx.DB.Where("id = ?", invitation.UserID).First(&user)
 	now := time.Now()
@@ -232,6 +286,19 @@ func (h *CommonHandler) AcceptMemberInvitationHandler(c *gin.Context) {
 		user.VerificationToken = ""
 		user.VerificationTokenExpiredAt = nil
 		h.ctx.DB.Save(&user)
+	}
+
+	if invitation.IsCooperativeMember {
+		err := h.cooperativeSrv.CooperativeMemberService.AcceptMemberInvitation(token, invitation.UserID)
+		if err != nil {
+			c.JSON(400, gin.H{"error": err.Error()})
+			return
+		}
+	}
+	if (invitation.RoleID) != nil {
+		var role models.RoleModel
+		h.ctx.DB.Where("id = ?", invitation.RoleID).First(&role)
+		h.ctx.DB.Model(&user).Association("Roles").Append(&role)
 	}
 	c.JSON(200, gin.H{"message": "Member invitation accepted successfully"})
 }
@@ -402,4 +469,95 @@ func checkSuperAdmin(erpContext *context.ERPContext, userID string, companyID st
 	}
 
 	return false, nil
+}
+
+func (h *CommonHandler) InviteUserHandler(c *gin.Context) {
+	var input struct {
+		FullName            string  `json:"full_name"`
+		RoleID              *string `json:"role_id"`
+		Email               string  `json:"email"`
+		IsCooperativeMember bool    `json:"is_cooperative_member"`
+	}
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+	var data models.MemberInvitationModel
+	data.FullName = input.FullName
+	data.RoleID = input.RoleID
+	data.Email = input.Email
+
+	var user models.UserModel
+	var link = ""
+	var password = ""
+
+	err = h.ctx.DB.Where("email = ?", input.Email).First(&user).Error
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		// Create new user if not exists
+		username := utils.CreateUsernameFromFullName(input.FullName)
+		// fmt.Println("username", username)
+		password = utils.RandString(8, false)
+		u, err := h.authService.Register(input.FullName, username, input.Email, password, "")
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		user = *u
+
+	} else {
+		user.Password = ""
+	}
+
+	var company models.CompanyModel
+	h.ctx.DB.Where("id = ?", c.GetHeader("ID-Company")).First(&company)
+
+	err = h.ctx.DB.Model(&user).Association("Companies").Append(&company)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	data.UserID = user.ID
+	if user.VerificationToken != "" {
+		data.Token = user.VerificationToken
+	}
+
+	data.InviterID = c.MustGet("userID").(string)
+	data.CompanyID = &company.ID
+	token, err := h.cooperativeSrv.CooperativeMemberService.InviteMember(&data)
+	if err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+	var role models.RoleModel
+	h.ctx.DB.Where("id = ?", input.RoleID).First(&role)
+	link = fmt.Sprintf("%s/invitation/verify/%s", h.appService.Config.Server.FrontendURL, token)
+	notif := fmt.Sprintf("Anda telah diundang untuk bergabung di %s ", company.Name)
+
+	var emailData objects.EmailData = objects.EmailData{
+		FullName: user.FullName,
+		Email:    user.Email,
+		Subject:  "Selamat datang di " + h.appService.Config.Server.AppName,
+		Notif:    notif,
+		Link:     link,
+		Password: password,
+		RoleName: role.Name,
+	}
+
+	b, err := json.Marshal(emailData)
+	if err != nil {
+		c.JSON(500, gin.H{"message": err.Error()})
+		return
+	}
+	// fmt.Println("SEND MAIL", string(b))
+	err = h.appService.Redis.Publish(*h.ctx.Ctx, "SEND:MAIL", string(b)).Err()
+	if err != nil {
+		c.JSON(500, gin.H{"message": err.Error()})
+		return
+	}
+
+	c.JSON(200, gin.H{"message": "Member invited successfully", "token": token})
 }

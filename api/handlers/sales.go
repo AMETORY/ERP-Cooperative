@@ -94,6 +94,7 @@ func (s *SalesHandler) CreateSalesHandler(c *gin.Context) {
 		SecondaryRefType: input.SecondaryRefType,
 		PaymentTermsCode: input.PaymentTermsCode,
 		TermCondition:    input.TermCondition,
+		SalesUserID:      input.SalesUserID,
 	}
 	if input.DeliveryID != nil && input.DeliveryData != "" {
 		data.DeliveryID = input.DeliveryID
@@ -227,7 +228,8 @@ func (s *SalesHandler) AddItemHandler(c *gin.Context) {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(201, gin.H{"message": "Item added successfully", "data": input})
+
+	c.JSON(200, gin.H{"message": "Item added successfully", "data": input})
 }
 func (s *SalesHandler) PaymentHandler(c *gin.Context) {
 	id := c.Param("id")
