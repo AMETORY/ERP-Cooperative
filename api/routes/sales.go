@@ -4,12 +4,15 @@ import (
 	"ametory-cooperative/api/handlers"
 	"ametory-cooperative/api/middlewares"
 
+	sales "ametory-cooperative/api/handlers/sales"
+
 	"github.com/AMETORY/ametory-erp-modules/context"
 	"github.com/gin-gonic/gin"
 )
 
 func SetupSalesRoutes(r *gin.RouterGroup, erpContext *context.ERPContext) {
 	salesHandler := handlers.NewSalesHandler(erpContext)
+	salesDashboardHandler := sales.NewSalesDashboardHandler(erpContext)
 	salesGroup := r.Group("/sales")
 	salesGroup.Use(middlewares.AuthMiddleware(erpContext, false))
 	{
@@ -26,5 +29,11 @@ func SetupSalesRoutes(r *gin.RouterGroup, erpContext *context.ERPContext) {
 		salesGroup.PUT("/:id/update-item/:itemId", middlewares.RbacUserMiddleware(erpContext, false, []string{"order:sales:update"}), salesHandler.UpdateItemHandler)
 		salesGroup.GET("/:id/items", middlewares.RbacUserMiddleware(erpContext, false, []string{"order:sales:read"}), salesHandler.GetItemsHandler)
 		salesGroup.DELETE("/:id", middlewares.RbacUserMiddleware(erpContext, false, []string{"order:sales:delete"}), salesHandler.DeleteSalesHandler)
+
+		dashboardGroup := salesGroup.Group("/dashboard")
+		dashboardGroup.Use(middlewares.AuthMiddleware(erpContext, false))
+		{
+			dashboardGroup.POST("/summary", middlewares.RbacUserMiddleware(erpContext, false, []string{"order:sales:read"}), salesDashboardHandler.GetDashboardSummaryHandler)
+		}
 	}
 }
