@@ -32,6 +32,40 @@ func NewUserHandler(ctx *context.ERPContext) *UserHandler {
 	}
 }
 
+func (h *UserHandler) FinishActivityHandler(c *gin.Context) {
+	id := c.Param("id")
+	input := struct {
+		Latitude  *float64 `json:"latitude"`
+		Longitude *float64 `json:"longitude"`
+		Notes     *string  `json:"notes"`
+		FileID    *string  `json:"file_id"`
+		RefType   *string  `json:"ref_type"`
+	}{}
+	if err := c.BindJSON(&input); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+	userActivity := models.UserActivityModel{}
+	err := h.ctx.DB.Where("id = ?", id).First(&userActivity).Error
+	if err != nil {
+		c.JSON(404, gin.H{"error": "UserActivity not found"})
+		return
+	}
+	_, err = h.userService.FinishActivityByUser(c.MustGet("userID").(string), userActivity.ActivityType, input.Latitude, input.Longitude, input.Notes)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	if input.FileID != nil {
+		if input.RefType != nil {
+			h.fileService.UpdateFileRefByID(*input.FileID, userActivity.ID, *input.RefType)
+		} else {
+			h.fileService.UpdateFileRefByID(*input.FileID, userActivity.ID, "user_activity")
+		}
+	}
+	c.JSON(200, gin.H{"message": "Activity updated successfully"})
+
+}
 func (h *UserHandler) CreateActivityHandler(c *gin.Context) {
 	input := struct {
 		Latitude    *float64                `json:"latitude"`
@@ -68,7 +102,11 @@ func (h *UserHandler) CreateActivityHandler(c *gin.Context) {
 	}
 
 	if input.FileID != nil {
-		h.fileService.UpdateFileRefByID(*input.FileID, userActivity.ID, "user_activity")
+		if input.ActivityTpe == models.UserActivityCheckPoint {
+			h.fileService.UpdateFileRefByID(*input.FileID, userActivity.ID, "check_point")
+		} else {
+			h.fileService.UpdateFileRefByID(*input.FileID, userActivity.ID, "user_activity")
+		}
 	}
 	c.JSON(200, gin.H{"message": "Activity created successfully"})
 
@@ -139,13 +177,14 @@ func (h *UserHandler) ClockInHandler(c *gin.Context) {
 	}
 
 	if input.FileID != nil {
-		h.fileService.UpdateFileRefByID(*input.FileID, userActivity.ID, "user_activity")
+		h.fileService.UpdateFileRefByID(*input.FileID, userActivity.ID, "clock_in")
 	}
 	c.JSON(200, gin.H{"message": "Activity created successfully"})
 }
 
 func (h *UserHandler) ClockOutHandler(c *gin.Context) {
 	input := struct {
+		ClockInID *string  `json:"clock_in_id"`
 		Latitude  *float64 `json:"latitude"`
 		Longitude *float64 `json:"longitude"`
 		Notes     *string  `json:"notes"`
@@ -157,14 +196,14 @@ func (h *UserHandler) ClockOutHandler(c *gin.Context) {
 		return
 	}
 
-	userActivity, err := h.userService.FinishActivityByUser(c.MustGet("userID").(string), models.UserActivityClockIn, input.Latitude, input.Longitude, input.Notes)
+	userActivity, err := h.userService.FinishActivityByActivityID(c.MustGet("userID").(string), *input.ClockInID, input.Latitude, input.Longitude, input.Notes)
 	if err != nil {
 		c.JSON(500, gin.H{"message": "Failed to create activity", "error": err.Error()})
 		return
 	}
 
 	if input.FileID != nil {
-		h.fileService.UpdateFileRefByID(*input.FileID, userActivity.ID, "user_activity")
+		h.fileService.UpdateFileRefByID(*input.FileID, userActivity.ID, "clock_out")
 	}
 	c.JSON(200, gin.H{"message": "Activity updated successfully"})
 }

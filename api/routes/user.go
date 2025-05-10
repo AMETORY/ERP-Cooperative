@@ -14,6 +14,7 @@ func SetupUserRoutes(r *gin.RouterGroup, erpContext *context.ERPContext) {
 	group.Use(middlewares.AuthMiddleware(erpContext, false))
 	{
 		group.POST("/activity", handler.CreateActivityHandler)
+		group.POST("/activity/:id/finish", handler.FinishActivityHandler)
 		group.POST("/clock-in", handler.ClockInHandler)
 		group.POST("/last-clock-in", handler.GetLastClockinHandler)
 		group.POST("/clock-out", handler.ClockOutHandler)
