@@ -83,6 +83,17 @@ func (h *ContactHandler) UpdateContactHandler(c *gin.Context) {
 		"is_supplier": contact.IsSupplier,
 	})
 
+	if contact.DebtLimit == 0 {
+		h.ctx.DB.Model(&contact).Where("id = ?", id).Updates(map[string]any{
+			"debt_limit": 0,
+		})
+	}
+	if contact.ReceivablesLimit == 0 {
+		h.ctx.DB.Model(&contact).Where("id = ?", id).Updates(map[string]any{
+			"receivables_limit": 0,
+		})
+	}
+
 	c.JSON(http.StatusOK, gin.H{"message": "Contact created successfully"})
 }
 

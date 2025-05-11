@@ -45,6 +45,7 @@ func (s *SalesDashboardHandler) GetDashboardSummaryHandler(c *gin.Context) {
 	err := s.ctx.DB.Model(&models.SalesModel{}).
 		Where("company_id = ? AND sales_user_id = ?", companyID, userID).
 		Where("sales_date  between ? AND ?", input.StartDate, input.EndDate).
+		Where("status IN (?)", []string{"POSTED"}).
 		Count(&countSales).Error
 	if err != nil {
 		c.JSON(500, gin.H{"message": err.Error()})
@@ -54,6 +55,7 @@ func (s *SalesDashboardHandler) GetDashboardSummaryHandler(c *gin.Context) {
 		Where("document_type = ? AND company_id = ? AND sales_user_id = ?", models.SALES_ORDER, companyID, userID).
 		Where("sales_date  between ? AND ?", input.StartDate, input.EndDate).
 		Select("COALESCE(sum(total), 0) as total").
+		Where("status IN (?)", []string{"POSTED"}).
 		Scan(&totalSalesOrder).Error
 	if err != nil {
 		c.JSON(500, gin.H{"message": err.Error()})
@@ -62,6 +64,7 @@ func (s *SalesDashboardHandler) GetDashboardSummaryHandler(c *gin.Context) {
 	err = s.ctx.DB.Model(&models.SalesModel{}).
 		Where("document_type = ? AND company_id = ? AND sales_user_id = ?", models.INVOICE, companyID, userID).
 		Where("sales_date  between ? AND ?", input.StartDate, input.EndDate).
+		Where("status IN (?)", []string{"POSTED"}).
 		Select("COALESCE(sum(total), 0) as total").
 		Scan(&totalSales).Error
 	if err != nil {
@@ -86,6 +89,8 @@ func (s *SalesDashboardHandler) GetDashboardSummaryHandler(c *gin.Context) {
 		err = s.ctx.DB.Model(&models.SalesModel{}).
 			Where("company_id = ? AND sales_user_id = ?", companyID, userID).
 			Where("sales_date  between ? AND ?", month, endMonth).
+			Where("document_type = ?", models.INVOICE).
+			Where("status IN (?)", []string{"POSTED"}).
 			Select("COALESCE(sum(total), 0) as total").
 			Scan(&total).Error
 		if err != nil {

@@ -41,6 +41,7 @@ func (s *SalesHandler) GetSalesHandler(c *gin.Context) {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
+
 	c.JSON(200, gin.H{"data": sales, "message": "Sales retrieved successfully"})
 }
 
@@ -50,6 +51,15 @@ func (s *SalesHandler) GetSalesByIdHandler(c *gin.Context) {
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
+	}
+	if sales.Contact != nil {
+		if sales.Contact.DebtLimit > 0 {
+			sales.Contact.DebtLimitRemain = sales.Contact.DebtLimit - s.contactSrv.GetTotalDebt(sales.Contact)
+		}
+		if sales.Contact.ReceivablesLimit > 0 {
+			sales.Contact.ReceivablesLimitRemain = sales.Contact.ReceivablesLimit - s.contactSrv.GetTotalReceivable(sales.Contact)
+		}
+
 	}
 	c.JSON(200, gin.H{"data": sales, "message": "Sales retrieved successfully"})
 }
@@ -71,7 +81,11 @@ func (s *SalesHandler) CreateSalesHandler(c *gin.Context) {
 
 	salesNumber := input.SalesNumber
 	if salesNumber == "" {
-		salesNumber = GenerateAutoNumber(s.ctx.DB, c.MustGet("companyID").(string), string(input.DocumentType))
+		salesNumber, err = GenerateAutoNumber(s.ctx.DB, c.MustGet("companyID").(string), string(input.DocumentType))
+		if err != nil {
+			c.JSON(500, gin.H{"error": err.Error()})
+			return
+		}
 	}
 	var data models.SalesModel = models.SalesModel{
 		SalesNumber:      salesNumber,

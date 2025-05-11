@@ -71,7 +71,11 @@ func (s *PurchaseHandler) CreatePurchaseHandler(c *gin.Context) {
 
 	purchaseNumber := input.PurchaseNumber
 	if purchaseNumber == "" {
-		purchaseNumber = GenerateAutoNumber(s.ctx.DB, c.MustGet("companyID").(string), string(input.DocumentType))
+		purchaseNumber, err = GenerateAutoNumber(s.ctx.DB, c.MustGet("companyID").(string), string(input.DocumentType))
+		if err != nil {
+			c.JSON(500, gin.H{"error": err.Error()})
+			return
+		}
 	}
 
 	var data models.PurchaseOrderModel = models.PurchaseOrderModel{

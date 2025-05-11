@@ -84,6 +84,7 @@ func (h *UserHandler) CreateActivityHandler(c *gin.Context) {
 	now := time.Now()
 
 	userID := c.MustGet("userID").(string)
+	companyID := c.MustGet("companyID").(string)
 	userActivity := models.UserActivityModel{
 		Latitude:     input.Latitude,
 		Longitude:    input.Longitude,
@@ -93,6 +94,7 @@ func (h *UserHandler) CreateActivityHandler(c *gin.Context) {
 		RefID:        input.RefID,
 		RefType:      input.RefType,
 		UserID:       userID,
+		CompanyID:    &companyID,
 	}
 
 	err := h.userService.CreateActivity(c.MustGet("userID").(string), &userActivity)
@@ -131,9 +133,9 @@ func (h *UserHandler) GetLastClockinHandler(c *gin.Context) {
 	case "days":
 		thresholdDuration = time.Hour * 24 * time.Duration(input.ThresholdDuration)
 	}
-
+	companyID := c.MustGet("companyID").(string)
 	userID := c.MustGet("userID").(string)
-	userActivity, _ := h.userService.GetLastClockinByUser(userID, thresholdDuration)
+	userActivity, _ := h.userService.GetLastClockinByUser(userID, companyID, thresholdDuration)
 
 	c.JSON(200, gin.H{"last_clockin": userActivity})
 }
@@ -159,6 +161,7 @@ func (h *UserHandler) ClockInHandler(c *gin.Context) {
 		refType = &refTypeStr
 	}
 	userID := c.MustGet("userID").(string)
+	companyID := c.MustGet("companyID").(string)
 	userActivity := models.UserActivityModel{
 		Latitude:     input.Latitude,
 		Longitude:    input.Longitude,
@@ -168,6 +171,7 @@ func (h *UserHandler) ClockInHandler(c *gin.Context) {
 		RefID:        merchantID,
 		RefType:      refType,
 		UserID:       userID,
+		CompanyID:    &companyID,
 	}
 
 	err := h.userService.CreateActivity(c.MustGet("userID").(string), &userActivity)
@@ -241,6 +245,8 @@ func (h *UserHandler) BreakHandler(c *gin.Context) {
 		refType = &refTypeStr
 	}
 	userID := c.MustGet("userID").(string)
+	companyID := c.MustGet("companyID").(string)
+
 	userActivity := models.UserActivityModel{
 		Latitude:     input.Latitude,
 		Longitude:    input.Longitude,
@@ -250,6 +256,7 @@ func (h *UserHandler) BreakHandler(c *gin.Context) {
 		RefID:        merchantID,
 		RefType:      refType,
 		UserID:       userID,
+		CompanyID:    &companyID,
 	}
 
 	err := h.userService.CreateActivity(c.MustGet("userID").(string), &userActivity)
