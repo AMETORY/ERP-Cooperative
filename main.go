@@ -238,6 +238,7 @@ func main() {
 	routes.SetupStockOpnameRoutes(v1, erpContext)
 	routes.SetupRoleRoutes(v1, erpContext)
 	routes.SetupUserRoutes(v1, erpContext)
+	routes.SetupMerchantRoutes(v1, erpContext)
 
 	go func() {
 		workers.SendMail(erpContext)
