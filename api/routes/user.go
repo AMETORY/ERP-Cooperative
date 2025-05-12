@@ -21,5 +21,7 @@ func SetupUserRoutes(r *gin.RouterGroup, erpContext *context.ERPContext) {
 		group.GET("/activities", handler.GetActivityHandler)
 		group.POST("/break", handler.BreakHandler)
 		group.POST("/break-off", handler.BreakOffHandler)
+		group.GET("/:id", handler.GetUserDetailHandler)
+		group.GET("/list", handler.GetUserListHandler)
 	}
 }

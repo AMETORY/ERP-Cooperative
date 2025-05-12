@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"fmt"
+
 	"github.com/AMETORY/ametory-erp-modules/context"
 	"github.com/AMETORY/ametory-erp-modules/order"
 	"github.com/AMETORY/ametory-erp-modules/shared/models"
@@ -155,4 +157,111 @@ func (p *MerchantHandler) DeleteProductsFromMerchantHandler(c *gin.Context) {
 		return
 	}
 	c.JSON(200, gin.H{"message": "Product deleted from merchant successfully"})
+}
+
+func (p *MerchantHandler) GetMerchantUsersHandler(c *gin.Context) {
+	id := c.Param("id")
+	companyID := c.MustGet("companyID").(string)
+	users, err := p.orderSrc.MerchantService.GetMerchantUsers(*c.Request, c.Query("search"), id, companyID)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"data": users, "message": "Merchant users retrieved successfully"})
+}
+
+func (p *MerchantHandler) AddUserMerchantHandler(c *gin.Context) {
+	id := c.Param("id")
+	input := struct {
+		UserIDs []string `json:"user_ids"`
+	}{}
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	err = p.orderSrc.MerchantService.AddMerchantUser(id, input.UserIDs)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"message": "User added to merchant successfully"})
+}
+
+func (p *MerchantHandler) DeleteUserFromMerchantHandler(c *gin.Context) {
+	id := c.Param("id")
+	input := struct {
+		UserIDs []string `json:"user_ids"`
+	}{}
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	err = p.orderSrc.MerchantService.DeleteUserFromMerchant(id, input.UserIDs)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"message": "User deleted from merchant successfully"})
+}
+
+func (p *MerchantHandler) AddDeskMerchantHandler(c *gin.Context) {
+	id := c.Param("id")
+	input := models.MerchantDesk{}
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	err = p.orderSrc.MerchantService.AddDeskToMerchant(id, &input)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"message": "Desk added to merchant successfully"})
+}
+
+func (p *MerchantHandler) GetDeskMerchantHandler(c *gin.Context) {
+	id := c.Param("id")
+	fmt.Println("GET DESK FROM MERCHANT", id)
+	desks, err := p.orderSrc.MerchantService.GetDesksFromID(*c.Request, id)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"data": desks, "message": "Merchant desk retrieved successfully"})
+}
+
+func (p *MerchantHandler) UpdateDeskMerchantHandler(c *gin.Context) {
+	id := c.Param("id")
+	deskId := c.Param("deskId")
+	input := models.MerchantDesk{}
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	err = p.orderSrc.MerchantService.UpdateMerchantDesk(id, deskId, &input)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"message": "Merchant desk updated successfully"})
+}
+
+func (p *MerchantHandler) DeleteDeskMerchantHandler(c *gin.Context) {
+	id := c.Param("id")
+	deskId := c.Param("deskId")
+
+	err := p.orderSrc.MerchantService.DeleteDeskFromMerchant(id, deskId)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"message": "Desk deleted from merchant successfully"})
 }

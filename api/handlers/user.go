@@ -3,6 +3,7 @@ package handlers
 import (
 	"time"
 
+	"github.com/AMETORY/ametory-erp-modules/company"
 	"github.com/AMETORY/ametory-erp-modules/context"
 	"github.com/AMETORY/ametory-erp-modules/file"
 	"github.com/AMETORY/ametory-erp-modules/shared/models"
@@ -11,9 +12,10 @@ import (
 )
 
 type UserHandler struct {
-	ctx         *context.ERPContext
-	userService *user.UserService
-	fileService *file.FileService
+	ctx            *context.ERPContext
+	userService    *user.UserService
+	fileService    *file.FileService
+	companyService *company.CompanyService
 }
 
 func NewUserHandler(ctx *context.ERPContext) *UserHandler {
@@ -25,11 +27,39 @@ func NewUserHandler(ctx *context.ERPContext) *UserHandler {
 	if !ok {
 		panic("FileService is not instance of file.FileService")
 	}
-	return &UserHandler{
-		ctx:         ctx,
-		userService: userService,
-		fileService: fileService,
+
+	companyService, ok := ctx.CompanyService.(*company.CompanyService)
+	if !ok {
+		panic("CompanyService is not instance of company.CompanyService")
 	}
+
+	return &UserHandler{
+		ctx:            ctx,
+		userService:    userService,
+		fileService:    fileService,
+		companyService: companyService,
+	}
+}
+
+func (h *UserHandler) GetUserDetailHandler(c *gin.Context) {
+	userID := c.Param("id")
+	var user models.UserModel
+	err := h.ctx.DB.First(&user, "id = ?", userID).Error
+	if err != nil {
+		c.JSON(404, gin.H{"error": "User not found"})
+		return
+	}
+	c.JSON(200, gin.H{"data": user})
+}
+
+func (h *UserHandler) GetUserListHandler(c *gin.Context) {
+	companyID := c.MustGet("companyID").(string)
+	users, err := h.companyService.GetCompanyUsers(companyID, *c.Request)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"data": users})
 }
 
 func (h *UserHandler) FinishActivityHandler(c *gin.Context) {

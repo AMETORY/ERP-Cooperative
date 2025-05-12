@@ -21,5 +21,12 @@ func SetupMerchantRoutes(r *gin.RouterGroup, erpContext *context.ERPContext) {
 		merchantGroup.PUT("/:id/add-product", middlewares.RbacUserMiddleware(erpContext, false, []string{"order:merchant:update"}), merchantHandler.AddProductMerchantHandler)
 		merchantGroup.DELETE("/:id", middlewares.RbacUserMiddleware(erpContext, false, []string{"order:merchant:delete"}), merchantHandler.DeleteMerchantHandler)
 		merchantGroup.DELETE("/:id/delete-product", middlewares.RbacUserMiddleware(erpContext, false, []string{"order:merchant:delete"}), merchantHandler.DeleteProductsFromMerchantHandler)
+		merchantGroup.GET("/:id/users", middlewares.RbacUserMiddleware(erpContext, false, []string{"order:merchant:read"}), merchantHandler.GetMerchantUsersHandler)
+		merchantGroup.PUT("/:id/add-user", middlewares.RbacUserMiddleware(erpContext, false, []string{"order:merchant:update"}), merchantHandler.AddUserMerchantHandler)
+		merchantGroup.DELETE("/:id/delete-user", middlewares.RbacUserMiddleware(erpContext, false, []string{"order:merchant:delete"}), merchantHandler.DeleteUserFromMerchantHandler)
+		merchantGroup.PUT("/:id/add-desk", middlewares.RbacUserMiddleware(erpContext, false, []string{"order:merchant:update"}), merchantHandler.AddDeskMerchantHandler)
+		merchantGroup.GET("/:id/desk", middlewares.RbacUserMiddleware(erpContext, false, []string{"order:merchant:update"}), merchantHandler.GetDeskMerchantHandler)
+		merchantGroup.PUT("/:id/desk/:deskId", middlewares.RbacUserMiddleware(erpContext, false, []string{"order:merchant:update"}), merchantHandler.UpdateDeskMerchantHandler)
+		merchantGroup.DELETE("/:id/desk/:deskId", middlewares.RbacUserMiddleware(erpContext, false, []string{"order:merchant:update"}), merchantHandler.DeleteDeskMerchantHandler)
 	}
 }
