@@ -8,7 +8,9 @@ import (
 	"log"
 	"net/http"
 	"sort"
+	"time"
 
+	"github.com/AMETORY/ametory-erp-modules/contact"
 	"github.com/AMETORY/ametory-erp-modules/context"
 	"github.com/AMETORY/ametory-erp-modules/finance"
 	"github.com/AMETORY/ametory-erp-modules/shared/models"
@@ -20,6 +22,42 @@ import (
 type ReportHandler struct {
 	ctx        *context.ERPContext
 	financeSrv *finance.FinanceService
+	contactSev *contact.ContactService
+}
+
+var borderAll = []excelize.Border{
+	{
+		Type:  "left",
+		Color: "#555555",
+		Style: 1,
+	},
+	{
+		Type:  "right",
+		Color: "#555555",
+		Style: 1,
+	},
+	{
+		Type:  "top",
+		Color: "#555555",
+		Style: 1,
+	},
+	{
+		Type:  "bottom",
+		Color: "#555555",
+		Style: 1,
+	},
+}
+var borderHorizontal = []excelize.Border{
+	{
+		Type:  "left",
+		Color: "#555555",
+		Style: 1,
+	},
+	{
+		Type:  "right",
+		Color: "#555555",
+		Style: 1,
+	},
 }
 
 func NewReportHandler(ctx *context.ERPContext) *ReportHandler {
@@ -27,9 +65,14 @@ func NewReportHandler(ctx *context.ERPContext) *ReportHandler {
 	if !ok {
 		panic("finance service is not found")
 	}
+	contactSev, ok := ctx.ContactService.(*contact.ContactService)
+	if !ok {
+		panic("contact service is not found")
+	}
 	return &ReportHandler{
 		ctx:        ctx,
 		financeSrv: financeSrv,
+		contactSev: contactSev,
 	}
 }
 
@@ -583,4 +626,641 @@ func (r *ReportHandler) GetProductSalesCustomersHandler(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "product sales customers report retrieved successfully", "data": matrix, "products": productSet, "contacts": contactSet, "grand_total_amount": grandTotalAmount, "grand_total_quantity": grandTotalQuantity})
 
+}
+
+func (r *ReportHandler) GetAccountReceivableLedgerHandler(c *gin.Context) {
+	var input struct {
+		Title      string    `json:"title,omitempty" form:"title"`
+		StartDate  time.Time `json:"start_date,omitempty" form:"start_date"`
+		EndDate    time.Time `json:"end_date,omitempty" form:"end_date"`
+		ContactID  string    `json:"contact_id,omitempty" example:"contact_id"`
+		IsDownload bool      `json:"is_download,omitempty" form:"is_download"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		log.Println(err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	companyID := c.MustGet("companyID").(string)
+	// TODO: add date filter
+	r.financeSrv.ReportService.SetContactService(r.contactSev)
+	data, err := r.financeSrv.ReportService.GetAccountReceivableLedger(companyID, input.ContactID, input.StartDate, input.EndDate)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if input.IsDownload {
+		fmtCode := `_(#,##0_);_(\(#,##0\);_("-"??_);_(@_)`
+		file := excelize.NewFile()
+		sheet1 := file.GetSheetName(0)
+
+		titleStyle, _ := file.NewStyle(&excelize.Style{
+			Font: &excelize.Font{
+				Bold: true,
+				Size: 20,
+			},
+			Alignment: &excelize.Alignment{
+				Horizontal: "center",
+				Vertical:   "center",
+				Indent:     10,
+			},
+			Border: borderAll,
+		})
+		headerStyle, _ := file.NewStyle(&excelize.Style{
+			Font: &excelize.Font{
+				Bold: true,
+				Size: 12,
+			},
+
+			Alignment: &excelize.Alignment{
+				Horizontal: "center",
+				Vertical:   "center",
+				Indent:     1,
+			},
+			Fill: excelize.Fill{
+				Type:    "pattern",
+				Color:   []string{"#DCE6F1"}, // Soft blue
+				Pattern: 1,
+			},
+			Border: borderAll,
+		})
+		heroStyle, _ := file.NewStyle(&excelize.Style{
+			Font: &excelize.Font{
+				Bold: true,
+				Size: 12,
+			},
+			Alignment: &excelize.Alignment{
+				Horizontal: "left",
+				Vertical:   "center",
+				Indent:     1,
+			},
+			Border: borderAll,
+		})
+		heroStyleNormal, _ := file.NewStyle(&excelize.Style{
+			Font: &excelize.Font{
+				Size: 12,
+			},
+			Alignment: &excelize.Alignment{
+				Horizontal: "left",
+				Vertical:   "center",
+				Indent:     1,
+			},
+			Border: borderAll,
+		})
+		heroStyleWithFormat, _ := file.NewStyle(&excelize.Style{
+			CustomNumFmt: &fmtCode,
+			Font: &excelize.Font{
+				Size: 12,
+			},
+			Alignment: &excelize.Alignment{
+				Horizontal: "left",
+				Vertical:   "center",
+				Indent:     1,
+			},
+			Border: borderAll,
+		})
+		boldStyle, _ := file.NewStyle(&excelize.Style{
+			Font: &excelize.Font{
+				Bold: true,
+			},
+			Alignment: &excelize.Alignment{
+				Horizontal: "center",
+				Vertical:   "center",
+				Indent:     1,
+			},
+			Border: borderAll,
+		})
+		boldStyleFormat, _ := file.NewStyle(&excelize.Style{
+			CustomNumFmt: &fmtCode,
+			Font: &excelize.Font{
+				Bold: true,
+			},
+			Alignment: &excelize.Alignment{
+				Horizontal: "center",
+				Vertical:   "center",
+				Indent:     1,
+			},
+			Border: borderAll,
+		})
+		boldLeftStyleFormat, _ := file.NewStyle(&excelize.Style{
+			CustomNumFmt: &fmtCode,
+			Font: &excelize.Font{
+				Bold: true,
+			},
+			Alignment: &excelize.Alignment{
+				Vertical: "center",
+				Indent:   1,
+			},
+			Border: borderAll,
+		})
+		centerStyle, _ := file.NewStyle(&excelize.Style{
+			CustomNumFmt: &fmtCode,
+			Alignment: &excelize.Alignment{
+				Horizontal: "center",
+				Vertical:   "center",
+				Indent:     1,
+			},
+			Border: borderAll,
+		})
+		borderStyle, _ := file.NewStyle(&excelize.Style{
+			Alignment: &excelize.Alignment{
+				Vertical: "center",
+				Indent:   1,
+			},
+			Border: borderAll,
+		})
+		borderHorizontalStyle, _ := file.NewStyle(&excelize.Style{
+			Alignment: &excelize.Alignment{
+				Vertical: "center",
+				Indent:   1,
+			},
+			Border: borderHorizontal,
+		})
+		row := 1
+
+		file.SetColWidth(sheet1, "A", "A", 20)
+		file.SetColWidth(sheet1, "B", "B", 30)
+		file.SetColWidth(sheet1, "C", "D", 20)
+		file.SetColWidth(sheet1, "E", "E", 20)
+		file.SetColWidth(sheet1, "F", "F", 30)
+		file.SetRowHeight(sheet1, row, 30)
+
+		file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "A", row), "Buku Besar Piutang")
+		file.MergeCell(sheet1, fmt.Sprintf("%s%d", "A", row), fmt.Sprintf("%s%d", "F", row))
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "A", row), fmt.Sprintf("%s%d", "F", row), titleStyle)
+
+		file.SetRowHeight(sheet1, row, 30)
+		row++
+		file.SetRowHeight(sheet1, row, 30)
+		row++
+		file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "A", row), "Nama ")
+		file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "B", row), data.Contact.Name)
+		file.MergeCell(sheet1, fmt.Sprintf("%s%d", "C", row), fmt.Sprintf("%s%d", "D", row))
+		file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "E", row), "Kode ")
+		file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "F", row), data.Contact.Code)
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "A", row), fmt.Sprintf("%s%d", "A", row), heroStyle)
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "E", row), fmt.Sprintf("%s%d", "E", row), heroStyle)
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "B", row), fmt.Sprintf("%s%d", "B", row), heroStyleNormal)
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "F", row), fmt.Sprintf("%s%d", "F", row), heroStyleNormal)
+		file.SetRowHeight(sheet1, row, 30)
+		row++
+
+		file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "A", row), "Alamat ")
+		file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "B", row), data.Contact.Address)
+		file.MergeCell(sheet1, fmt.Sprintf("%s%d", "C", row), fmt.Sprintf("%s%d", "D", row))
+		file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "E", row), "Telp. ")
+		if data.Contact.Phone != nil {
+			file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "F", row), *data.Contact.Phone)
+		}
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "A", row), fmt.Sprintf("%s%d", "A", row), heroStyle)
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "E", row), fmt.Sprintf("%s%d", "E", row), heroStyle)
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "B", row), fmt.Sprintf("%s%d", "B", row), heroStyleNormal)
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "F", row), fmt.Sprintf("%s%d", "F", row), heroStyleNormal)
+		file.SetRowHeight(sheet1, row, 30)
+		row++
+
+		file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "A", row), "Batas Kredit ")
+		file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "B", row), data.Contact.DebtLimit)
+		file.MergeCell(sheet1, fmt.Sprintf("%s%d", "C", row), fmt.Sprintf("%s%d", "D", row))
+		file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "E", row), "Sisa Batas Kredit ")
+		file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "F", row), data.Contact.DebtLimitRemain)
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "A", row), fmt.Sprintf("%s%d", "A", row), heroStyle)
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "E", row), fmt.Sprintf("%s%d", "E", row), heroStyle)
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "B", row), fmt.Sprintf("%s%d", "B", row), heroStyleWithFormat)
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "F", row), fmt.Sprintf("%s%d", "F", row), heroStyleWithFormat)
+		file.SetRowHeight(sheet1, row, 30)
+		row++
+		file.SetRowHeight(sheet1, row, 30)
+		row++
+
+		file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "A", row), "Tgl")
+		file.MergeCell(sheet1, fmt.Sprintf("%s%d", "A", row), fmt.Sprintf("%s%d", "A", row+1))
+		file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "B", row), "Keterangan")
+		file.MergeCell(sheet1, fmt.Sprintf("%s%d", "B", row), fmt.Sprintf("%s%d", "B", row+1))
+		file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "C", row), "Ref")
+		file.MergeCell(sheet1, fmt.Sprintf("%s%d", "C", row), fmt.Sprintf("%s%d", "C", row+1))
+		file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "D", row), "Mutasi")
+		file.MergeCell(sheet1, fmt.Sprintf("%s%d", "D", row), fmt.Sprintf("%s%d", "E", row))
+		file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "F", row), "Saldo")
+		file.MergeCell(sheet1, fmt.Sprintf("%s%d", "F", row), fmt.Sprintf("%s%d", "F", row+1))
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "A", row), fmt.Sprintf("%s%d", "F", row), headerStyle)
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "A", row), fmt.Sprintf("%s%d", "A", row), headerStyle)
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "B", row), fmt.Sprintf("%s%d", "B", row), headerStyle)
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "C", row), fmt.Sprintf("%s%d", "C", row), headerStyle)
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "D", row), fmt.Sprintf("%s%d", "D", row), headerStyle)
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "E", row), fmt.Sprintf("%s%d", "E", row), headerStyle)
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "F", row), fmt.Sprintf("%s%d", "F", row), headerStyle)
+
+		file.SetRowHeight(sheet1, row, 30)
+		row++
+		file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "D", row), "Debit")
+		file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "E", row), "Kredit")
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "D", row), fmt.Sprintf("%s%d", "E", row), headerStyle)
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "A", row), fmt.Sprintf("%s%d", "C", row), borderHorizontalStyle)
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "F", row), fmt.Sprintf("%s%d", "F", row), borderHorizontalStyle)
+		file.SetRowHeight(sheet1, row, 30)
+		row++
+
+		if data.TotalBalanceBefore > 0 {
+			file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "B", row), "Saldo")
+			file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "B", row), fmt.Sprintf("%s%d", "B", row), boldLeftStyleFormat)
+			file.MergeCell(sheet1, fmt.Sprintf("%s%d", "B", row), fmt.Sprintf("%s%d", "C", row))
+			file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "D", row), data.TotalDebitBefore)
+			file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "E", row), data.TotalCreditBefore)
+			file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "F", row), data.TotalBalanceBefore)
+			file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "D", row), fmt.Sprintf("%s%d", "F", row), centerStyle)
+			file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "C", row), fmt.Sprintf("%s%d", "C", row), borderStyle)
+			file.SetRowHeight(sheet1, row, 30)
+			row++
+		}
+
+		for _, v := range data.Ledgers {
+			file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "A", row), v.Date.Format("02-01-2006"))
+			file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "B", row), v.Description)
+			file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "C", row), v.Ref)
+			file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "D", row), v.Debit)
+			file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "E", row), v.Credit)
+			file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "F", row), v.Balance)
+			file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "A", row), fmt.Sprintf("%s%d", "C", row), borderStyle)
+			file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "D", row), fmt.Sprintf("%s%d", "F", row), centerStyle)
+			file.SetRowHeight(sheet1, row, 30)
+			row++
+
+		}
+
+		if data.TotalBalanceAfter > 0 {
+			file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "B", row), fmt.Sprintf("Saldo %s", input.EndDate.Format("02-01-2006")))
+			file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "B", row), fmt.Sprintf("%s%d", "B", row), boldLeftStyleFormat)
+			file.MergeCell(sheet1, fmt.Sprintf("%s%d", "B", row), fmt.Sprintf("%s%d", "C", row))
+			file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "D", row), data.TotalDebitAfter)
+			file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "E", row), data.TotalCreditAfter)
+			file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "F", row), data.TotalBalanceAfter)
+			file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "D", row), fmt.Sprintf("%s%d", "F", row), centerStyle)
+			file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "C", row), fmt.Sprintf("%s%d", "C", row), borderStyle)
+			file.SetRowHeight(sheet1, row, 30)
+			row++
+		}
+
+		if data.TotalBalance > 0 {
+			file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "B", row), "Sub Total")
+			file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "B", row), fmt.Sprintf("%s%d", "B", row), boldLeftStyleFormat)
+			file.MergeCell(sheet1, fmt.Sprintf("%s%d", "B", row), fmt.Sprintf("%s%d", "C", row))
+			file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "D", row), data.TotalDebit)
+			file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "E", row), data.TotalCredit)
+			file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "F", row), data.TotalBalance)
+			file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "D", row), fmt.Sprintf("%s%d", "F", row), centerStyle)
+			file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "C", row), fmt.Sprintf("%s%d", "C", row), borderStyle)
+			file.SetRowHeight(sheet1, row, 30)
+			row++
+		}
+
+		file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "B", row), "Total")
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "B", row), fmt.Sprintf("%s%d", "B", row), boldLeftStyleFormat)
+		file.MergeCell(sheet1, fmt.Sprintf("%s%d", "B", row), fmt.Sprintf("%s%d", "C", row))
+		file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "D", row), data.GrandTotalDebit)
+		file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "E", row), data.GrandTotalCredit)
+		file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "F", row), data.GrandTotalBalance)
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "D", row), fmt.Sprintf("%s%d", "F", row), centerStyle)
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "C", row), fmt.Sprintf("%s%d", "C", row), borderStyle)
+		file.SetRowHeight(sheet1, row, 30)
+		row++
+
+		fmt.Println(
+			headerStyle,
+			boldStyle,
+			boldStyleFormat,
+			centerStyle,
+		)
+
+		var buf bytes.Buffer
+		if err := file.Write(&buf); err != nil {
+			log.Println(err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to write XLSX file"})
+			return
+		}
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", "attachment; filename=report.xlsx")
+		c.Data(http.StatusOK, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", buf.Bytes())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Account Receivable Ledger report retrieved successfully", "data": data})
+}
+func (r *ReportHandler) GetAccountPayabledgerHandler(c *gin.Context) {
+	var input struct {
+		Title      string    `json:"title,omitempty" form:"title"`
+		StartDate  time.Time `json:"start_date,omitempty" form:"start_date"`
+		EndDate    time.Time `json:"end_date,omitempty" form:"end_date"`
+		ContactID  string    `json:"contact_id,omitempty" example:"contact_id"`
+		IsDownload bool      `json:"is_download,omitempty" form:"is_download"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		log.Println(err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	companyID := c.MustGet("companyID").(string)
+	// TODO: add date filter
+	r.financeSrv.ReportService.SetContactService(r.contactSev)
+	data, err := r.financeSrv.ReportService.GetAccountPayableLedger(companyID, input.ContactID, input.StartDate, input.EndDate)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if input.IsDownload {
+		fmtCode := `_(#,##0_);_(\(#,##0\);_("-"??_);_(@_)`
+		file := excelize.NewFile()
+		sheet1 := file.GetSheetName(0)
+
+		titleStyle, _ := file.NewStyle(&excelize.Style{
+			Font: &excelize.Font{
+				Bold: true,
+				Size: 20,
+			},
+			Alignment: &excelize.Alignment{
+				Horizontal: "center",
+				Vertical:   "center",
+				Indent:     10,
+			},
+			Border: borderAll,
+		})
+		headerStyle, _ := file.NewStyle(&excelize.Style{
+			Font: &excelize.Font{
+				Bold: true,
+				Size: 12,
+			},
+
+			Alignment: &excelize.Alignment{
+				Horizontal: "center",
+				Vertical:   "center",
+				Indent:     1,
+			},
+			Fill: excelize.Fill{
+				Type:    "pattern",
+				Color:   []string{"#DCE6F1"}, // Soft blue
+				Pattern: 1,
+			},
+			Border: borderAll,
+		})
+		heroStyle, _ := file.NewStyle(&excelize.Style{
+			Font: &excelize.Font{
+				Bold: true,
+				Size: 12,
+			},
+			Alignment: &excelize.Alignment{
+				Horizontal: "left",
+				Vertical:   "center",
+				Indent:     1,
+			},
+			Border: borderAll,
+		})
+		heroStyleNormal, _ := file.NewStyle(&excelize.Style{
+			Font: &excelize.Font{
+				Size: 12,
+			},
+			Alignment: &excelize.Alignment{
+				Horizontal: "left",
+				Vertical:   "center",
+				Indent:     1,
+			},
+			Border: borderAll,
+		})
+		heroStyleWithFormat, _ := file.NewStyle(&excelize.Style{
+			CustomNumFmt: &fmtCode,
+			Font: &excelize.Font{
+				Size: 12,
+			},
+			Alignment: &excelize.Alignment{
+				Horizontal: "left",
+				Vertical:   "center",
+				Indent:     1,
+			},
+			Border: borderAll,
+		})
+		boldStyle, _ := file.NewStyle(&excelize.Style{
+			Font: &excelize.Font{
+				Bold: true,
+			},
+			Alignment: &excelize.Alignment{
+				Horizontal: "center",
+				Vertical:   "center",
+				Indent:     1,
+			},
+			Border: borderAll,
+		})
+		boldStyleFormat, _ := file.NewStyle(&excelize.Style{
+			CustomNumFmt: &fmtCode,
+			Font: &excelize.Font{
+				Bold: true,
+			},
+			Alignment: &excelize.Alignment{
+				Horizontal: "center",
+				Vertical:   "center",
+				Indent:     1,
+			},
+			Border: borderAll,
+		})
+		boldLeftStyleFormat, _ := file.NewStyle(&excelize.Style{
+			CustomNumFmt: &fmtCode,
+			Font: &excelize.Font{
+				Bold: true,
+			},
+			Alignment: &excelize.Alignment{
+				Vertical: "center",
+				Indent:   1,
+			},
+			Border: borderAll,
+		})
+		centerStyle, _ := file.NewStyle(&excelize.Style{
+			CustomNumFmt: &fmtCode,
+			Alignment: &excelize.Alignment{
+				Horizontal: "center",
+				Vertical:   "center",
+				Indent:     1,
+			},
+			Border: borderAll,
+		})
+		borderStyle, _ := file.NewStyle(&excelize.Style{
+			Alignment: &excelize.Alignment{
+				Vertical: "center",
+				Indent:   1,
+			},
+			Border: borderAll,
+		})
+		borderHorizontalStyle, _ := file.NewStyle(&excelize.Style{
+			Alignment: &excelize.Alignment{
+				Vertical: "center",
+				Indent:   1,
+			},
+			Border: borderHorizontal,
+		})
+		row := 1
+
+		file.SetColWidth(sheet1, "A", "A", 20)
+		file.SetColWidth(sheet1, "B", "B", 30)
+		file.SetColWidth(sheet1, "C", "D", 20)
+		file.SetColWidth(sheet1, "E", "E", 20)
+		file.SetColWidth(sheet1, "F", "F", 30)
+		file.SetRowHeight(sheet1, row, 30)
+
+		file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "A", row), "Buku Besar Hutang")
+		file.MergeCell(sheet1, fmt.Sprintf("%s%d", "A", row), fmt.Sprintf("%s%d", "F", row))
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "A", row), fmt.Sprintf("%s%d", "F", row), titleStyle)
+
+		file.SetRowHeight(sheet1, row, 30)
+		row++
+		file.SetRowHeight(sheet1, row, 30)
+		row++
+		file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "A", row), "Nama ")
+		file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "B", row), data.Contact.Name)
+		file.MergeCell(sheet1, fmt.Sprintf("%s%d", "C", row), fmt.Sprintf("%s%d", "D", row))
+		file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "E", row), "Kode ")
+		file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "F", row), data.Contact.Code)
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "A", row), fmt.Sprintf("%s%d", "A", row), heroStyle)
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "E", row), fmt.Sprintf("%s%d", "E", row), heroStyle)
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "B", row), fmt.Sprintf("%s%d", "B", row), heroStyleNormal)
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "F", row), fmt.Sprintf("%s%d", "F", row), heroStyleNormal)
+		file.SetRowHeight(sheet1, row, 30)
+		row++
+
+		file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "A", row), "Alamat ")
+		file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "B", row), data.Contact.Address)
+		file.MergeCell(sheet1, fmt.Sprintf("%s%d", "C", row), fmt.Sprintf("%s%d", "D", row))
+		file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "E", row), "Telp. ")
+		if data.Contact.Phone != nil {
+			file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "F", row), *data.Contact.Phone)
+		}
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "A", row), fmt.Sprintf("%s%d", "A", row), heroStyle)
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "E", row), fmt.Sprintf("%s%d", "E", row), heroStyle)
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "B", row), fmt.Sprintf("%s%d", "B", row), heroStyleNormal)
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "F", row), fmt.Sprintf("%s%d", "F", row), heroStyleNormal)
+		file.SetRowHeight(sheet1, row, 30)
+		row++
+
+		file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "A", row), "Batas Kredit ")
+		file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "B", row), data.Contact.ReceivablesLimit)
+		file.MergeCell(sheet1, fmt.Sprintf("%s%d", "C", row), fmt.Sprintf("%s%d", "D", row))
+		file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "E", row), "Sisa Batas Kredit ")
+		file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "F", row), data.Contact.ReceivablesLimitRemain)
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "A", row), fmt.Sprintf("%s%d", "A", row), heroStyle)
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "E", row), fmt.Sprintf("%s%d", "E", row), heroStyle)
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "B", row), fmt.Sprintf("%s%d", "B", row), heroStyleWithFormat)
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "F", row), fmt.Sprintf("%s%d", "F", row), heroStyleWithFormat)
+		file.SetRowHeight(sheet1, row, 30)
+		row++
+		file.SetRowHeight(sheet1, row, 30)
+		row++
+
+		file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "A", row), "Tgl")
+		file.MergeCell(sheet1, fmt.Sprintf("%s%d", "A", row), fmt.Sprintf("%s%d", "A", row+1))
+		file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "B", row), "Keterangan")
+		file.MergeCell(sheet1, fmt.Sprintf("%s%d", "B", row), fmt.Sprintf("%s%d", "B", row+1))
+		file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "C", row), "Ref")
+		file.MergeCell(sheet1, fmt.Sprintf("%s%d", "C", row), fmt.Sprintf("%s%d", "C", row+1))
+		file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "D", row), "Mutasi")
+		file.MergeCell(sheet1, fmt.Sprintf("%s%d", "D", row), fmt.Sprintf("%s%d", "E", row))
+		file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "F", row), "Saldo")
+		file.MergeCell(sheet1, fmt.Sprintf("%s%d", "F", row), fmt.Sprintf("%s%d", "F", row+1))
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "A", row), fmt.Sprintf("%s%d", "F", row), headerStyle)
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "A", row), fmt.Sprintf("%s%d", "A", row), headerStyle)
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "B", row), fmt.Sprintf("%s%d", "B", row), headerStyle)
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "C", row), fmt.Sprintf("%s%d", "C", row), headerStyle)
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "D", row), fmt.Sprintf("%s%d", "D", row), headerStyle)
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "E", row), fmt.Sprintf("%s%d", "E", row), headerStyle)
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "F", row), fmt.Sprintf("%s%d", "F", row), headerStyle)
+
+		file.SetRowHeight(sheet1, row, 30)
+		row++
+		file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "D", row), "Debit")
+		file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "E", row), "Kredit")
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "D", row), fmt.Sprintf("%s%d", "E", row), headerStyle)
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "A", row), fmt.Sprintf("%s%d", "C", row), borderHorizontalStyle)
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "F", row), fmt.Sprintf("%s%d", "F", row), borderHorizontalStyle)
+		file.SetRowHeight(sheet1, row, 30)
+		row++
+
+		if data.TotalBalanceBefore > 0 {
+			file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "B", row), "Saldo")
+			file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "B", row), fmt.Sprintf("%s%d", "B", row), boldLeftStyleFormat)
+			file.MergeCell(sheet1, fmt.Sprintf("%s%d", "B", row), fmt.Sprintf("%s%d", "C", row))
+			file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "D", row), data.TotalDebitBefore)
+			file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "E", row), data.TotalCreditBefore)
+			file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "F", row), data.TotalBalanceBefore)
+			file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "D", row), fmt.Sprintf("%s%d", "F", row), centerStyle)
+			file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "C", row), fmt.Sprintf("%s%d", "C", row), borderStyle)
+			file.SetRowHeight(sheet1, row, 30)
+			row++
+		}
+
+		for _, v := range data.Ledgers {
+			file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "A", row), v.Date.Format("02-01-2006"))
+			file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "B", row), v.Description)
+			file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "C", row), v.Ref)
+			file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "D", row), v.Debit)
+			file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "E", row), v.Credit)
+			file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "F", row), v.Balance)
+			file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "A", row), fmt.Sprintf("%s%d", "C", row), borderStyle)
+			file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "D", row), fmt.Sprintf("%s%d", "F", row), centerStyle)
+			file.SetRowHeight(sheet1, row, 30)
+			row++
+
+		}
+
+		if data.TotalBalanceAfter > 0 {
+			file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "B", row), fmt.Sprintf("Saldo %s", input.EndDate.Format("02-01-2006")))
+			file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "B", row), fmt.Sprintf("%s%d", "B", row), boldLeftStyleFormat)
+			file.MergeCell(sheet1, fmt.Sprintf("%s%d", "B", row), fmt.Sprintf("%s%d", "C", row))
+			file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "D", row), data.TotalDebitAfter)
+			file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "E", row), data.TotalCreditAfter)
+			file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "F", row), data.TotalBalanceAfter)
+			file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "D", row), fmt.Sprintf("%s%d", "F", row), centerStyle)
+			file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "C", row), fmt.Sprintf("%s%d", "C", row), borderStyle)
+			file.SetRowHeight(sheet1, row, 30)
+			row++
+		}
+
+		if data.TotalBalance > 0 {
+			file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "B", row), "Sub Total")
+			file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "B", row), fmt.Sprintf("%s%d", "B", row), boldLeftStyleFormat)
+			file.MergeCell(sheet1, fmt.Sprintf("%s%d", "B", row), fmt.Sprintf("%s%d", "C", row))
+			file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "D", row), data.TotalDebit)
+			file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "E", row), data.TotalCredit)
+			file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "F", row), data.TotalBalance)
+			file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "D", row), fmt.Sprintf("%s%d", "F", row), centerStyle)
+			file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "C", row), fmt.Sprintf("%s%d", "C", row), borderStyle)
+			file.SetRowHeight(sheet1, row, 30)
+			row++
+		}
+
+		file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "B", row), "Total")
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "B", row), fmt.Sprintf("%s%d", "B", row), boldLeftStyleFormat)
+		file.MergeCell(sheet1, fmt.Sprintf("%s%d", "B", row), fmt.Sprintf("%s%d", "C", row))
+		file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "D", row), data.GrandTotalDebit)
+		file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "E", row), data.GrandTotalCredit)
+		file.SetCellValue(sheet1, fmt.Sprintf("%s%d", "F", row), data.GrandTotalBalance)
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "D", row), fmt.Sprintf("%s%d", "F", row), centerStyle)
+		file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", "C", row), fmt.Sprintf("%s%d", "C", row), borderStyle)
+		file.SetRowHeight(sheet1, row, 30)
+		row++
+
+		fmt.Println(
+			headerStyle,
+			boldStyle,
+			boldStyleFormat,
+			centerStyle,
+		)
+
+		var buf bytes.Buffer
+		if err := file.Write(&buf); err != nil {
+			log.Println(err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to write XLSX file"})
+			return
+		}
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", "attachment; filename=report.xlsx")
+		c.Data(http.StatusOK, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", buf.Bytes())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Account Payable Ledger report retrieved successfully", "data": data})
 }

@@ -25,5 +25,7 @@ func SetupReportRoutes(r *gin.RouterGroup, erpContext *context.ERPContext) {
 		reportGroup.DELETE("/closing-book/:id", reportHandler.DeleteClosingBooklHandler)
 		reportGroup.PUT("/closing-book/:id/generate", reportHandler.GenerateClosingBookHandler)
 		reportGroup.POST("/product-sales-customers", reportHandler.GetProductSalesCustomersHandler)
+		reportGroup.POST("/account-receivable-ledger", reportHandler.GetAccountReceivableLedgerHandler)
+		reportGroup.POST("/account-payable-ledger", reportHandler.GetAccountPayabledgerHandler)
 	}
 }
