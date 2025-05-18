@@ -265,3 +265,73 @@ func (p *MerchantHandler) DeleteDeskMerchantHandler(c *gin.Context) {
 	}
 	c.JSON(200, gin.H{"message": "Desk deleted from merchant successfully"})
 }
+
+func (p *MerchantHandler) GetLayoutDetailMerchantHandler(c *gin.Context) {
+	id := c.Param("id")
+	layoutId := c.Param("layoutId")
+
+	layout, err := p.orderSrc.MerchantService.GetLayoutDetailFromID(id, layoutId)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"data": layout, "message": "Merchant layout retrieved successfully"})
+}
+
+func (p *MerchantHandler) GetLayoutsMerchantHandler(c *gin.Context) {
+	id := c.Param("id")
+	desks, err := p.orderSrc.MerchantService.GetLayoutsFromID(*c.Request, id)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"data": desks, "message": "Merchant layout retrieved successfully"})
+}
+
+func (p *MerchantHandler) AddLayoutMerchantHandler(c *gin.Context) {
+	id := c.Param("id")
+	input := models.MerchantDeskLayout{}
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	err = p.orderSrc.MerchantService.AddLayoutToMerchant(id, &input)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"message": "Layout added to merchant successfully"})
+}
+
+func (p *MerchantHandler) UpdateLayoutMerchantHandler(c *gin.Context) {
+	id := c.Param("id")
+	layoutId := c.Param("layoutId")
+	input := models.MerchantDeskLayout{}
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	fmt.Println("UPDATE MERCHANT LAYOUT", id, layoutId, input)
+	err = p.orderSrc.MerchantService.UpdateLayoutMerchant(id, layoutId, &input)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"message": "Layout updated to merchant successfully"})
+}
+
+func (p *MerchantHandler) DeleteLayoutMerchantHandler(c *gin.Context) {
+	id := c.Param("id")
+	layoutId := c.Param("layoutId")
+
+	err := p.orderSrc.MerchantService.DeleteLayoutMerchant(id, layoutId)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"message": "Layout deleted from merchant successfully"})
+}

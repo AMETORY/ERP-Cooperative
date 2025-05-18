@@ -239,6 +239,8 @@ func main() {
 	routes.SetupRoleRoutes(v1, erpContext)
 	routes.SetupUserRoutes(v1, erpContext)
 	routes.SetupMerchantRoutes(v1, erpContext)
+	routes.SetupPosRoutes(v1, erpContext)
+	routes.SetupBrandRoutes(v1, erpContext)
 
 	go func() {
 		workers.SendMail(erpContext)

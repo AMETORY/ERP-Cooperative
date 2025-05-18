@@ -3,13 +3,18 @@ package handlers
 import (
 	"ametory-cooperative/app_models"
 	"ametory-cooperative/objects"
+	"bytes"
+	"fmt"
+	"log"
 	"net/http"
+	"sort"
 
 	"github.com/AMETORY/ametory-erp-modules/context"
 	"github.com/AMETORY/ametory-erp-modules/finance"
 	"github.com/AMETORY/ametory-erp-modules/shared/models"
 	"github.com/AMETORY/ametory-erp-modules/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/xuri/excelize/v2"
 )
 
 type ReportHandler struct {
@@ -352,4 +357,230 @@ func (r *ReportHandler) CashFlowHandler(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "cash flow retrieved successfully", "data": report})
+}
+
+func (r *ReportHandler) GetProductSalesCustomersHandler(c *gin.Context) {
+	input := objects.ReportRequest{}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	companyID := c.MustGet("companyID").(string)
+
+	report, err := r.financeSrv.ReportService.GetProductSalesCustomers(companyID, input.StartDate, input.EndDate, input.ProductIDs, input.CustomerIDs)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	matrix := map[string]map[string][]models.ProductSalesCustomer{}
+	productSet := map[string]models.ProductSalesCustomer{}
+	contactSet := map[string]models.ProductSalesCustomer{}
+	grandTotalQuantity := map[string]float64{}
+	grandTotalAmount := map[string]float64{}
+
+	for _, d := range report {
+		if _, ok := matrix[d.ProductID]; !ok {
+			matrix[d.ProductID] = map[string][]models.ProductSalesCustomer{}
+		}
+		matrix[d.ProductID][d.ContactID] = append(matrix[d.ProductID][d.ContactID], d)
+		grandTotalQuantity[d.ProductID] += d.TotalQuantity
+		grandTotalAmount[d.ProductID] += d.TotalPrice
+		productSet[d.ProductID] = models.ProductSalesCustomer{
+			ProductID:   d.ProductID,
+			ProductCode: d.ProductCode,
+			ProductName: d.ProductName,
+			UnitCode:    d.UnitCode,
+			UnitName:    d.UnitName,
+		}
+		contactSet[d.ContactID] = models.ProductSalesCustomer{
+			ContactID:   d.ContactID,
+			ContactCode: d.ContactCode,
+			ContactName: d.ContactName,
+		}
+	}
+
+	// sort productSet by product_code
+	sortedProducts := make([]models.ProductSalesCustomer, 0, len(productSet))
+	for _, v := range productSet {
+		sortedProducts = append(sortedProducts, v)
+	}
+	sort.Slice(sortedProducts, func(i, j int) bool {
+		return sortedProducts[i].ProductCode < sortedProducts[j].ProductCode
+	})
+	productSet = map[string]models.ProductSalesCustomer{}
+	for _, v := range sortedProducts {
+		productSet[v.ProductID] = v
+	}
+
+	// sort contactSet by contact_code
+	sortedContacts := make([]models.ProductSalesCustomer, 0, len(contactSet))
+	for _, v := range contactSet {
+		sortedContacts = append(sortedContacts, v)
+	}
+	sort.Slice(sortedContacts, func(i, j int) bool {
+		return sortedContacts[i].ContactCode < sortedContacts[j].ContactCode
+	})
+	contactSet = map[string]models.ProductSalesCustomer{}
+	for _, v := range sortedContacts {
+		contactSet[v.ContactID] = v
+	}
+
+	fmtCode := `_(#,##0_);_(\(#,##0\);_("-"??_);_(@_)`
+
+	if input.IsDownload {
+		file := excelize.NewFile()
+		sheet1 := file.GetSheetName(0)
+
+		headerStyle, err := file.NewStyle(&excelize.Style{
+			Font: &excelize.Font{
+				Bold: true,
+				Size: 12,
+			},
+			Alignment: &excelize.Alignment{
+				Horizontal: "center",
+				Vertical:   "center",
+			},
+			Fill: excelize.Fill{
+				Type:    "pattern",
+				Color:   []string{"#DCE6F1"}, // Soft blue
+				Pattern: 1,
+			},
+		})
+		boldStyle, _ := file.NewStyle(&excelize.Style{
+			Font: &excelize.Font{
+				Bold: true,
+			},
+			Alignment: &excelize.Alignment{
+				Horizontal: "center",
+				Vertical:   "center",
+			},
+		})
+		boldStyleFormat, _ := file.NewStyle(&excelize.Style{
+			CustomNumFmt: &fmtCode,
+			Font: &excelize.Font{
+				Bold: true,
+			},
+			Alignment: &excelize.Alignment{
+				Horizontal: "center",
+				Vertical:   "center",
+			},
+		})
+		centerStyle, _ := file.NewStyle(&excelize.Style{
+			CustomNumFmt: &fmtCode,
+			Alignment: &excelize.Alignment{
+				Horizontal: "center",
+				Vertical:   "center",
+			},
+		})
+		row := 1
+		headers := []string{"Kode"}
+		colWidth := []float64{15}
+		for _, v := range productSet {
+
+			headers = append(headers, v.ProductName)
+			colWidth = append(colWidth, 20)
+		}
+
+		for i, header := range headers {
+			file.SetCellValue(sheet1, fmt.Sprintf("%s%d", utils.NumToAlphabet(i+1), row), header)
+			file.SetColWidth(sheet1, utils.NumToAlphabet(i+1), utils.NumToAlphabet(i+1), colWidth[i])
+			// Apply styles: bold font, bigger font, center align, and soft blue background
+
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			file.SetCellStyle(sheet1, fmt.Sprintf("A%d", row), fmt.Sprintf("%s%d", utils.NumToAlphabet(len(headers)), row), headerStyle)
+
+		}
+
+		row++
+		headers = []string{""}
+		colWidth = []float64{15}
+		for _, v := range productSet {
+			if input.View == "quantity" && v.UnitCode != "" {
+				headers = append(headers, fmt.Sprintf(`%s
+(%s)`, v.ProductCode, v.UnitCode))
+			} else {
+				headers = append(headers, v.ProductCode)
+
+			}
+			colWidth = append(colWidth, 20)
+		}
+
+		for i, header := range headers {
+			file.SetCellValue(sheet1, fmt.Sprintf("%s%d", utils.NumToAlphabet(i+1), row), header)
+			file.SetColWidth(sheet1, utils.NumToAlphabet(i+1), utils.NumToAlphabet(i+1), colWidth[i])
+			// Apply styles: bold font, bigger font, center align, and soft blue background
+
+			file.SetCellStyle(sheet1, fmt.Sprintf("A%d", row), fmt.Sprintf("%s%d", utils.NumToAlphabet(len(headers)), row), headerStyle)
+
+		}
+
+		file.MergeCell(sheet1, "A1", "A2")
+		row++
+
+		for keyCustomer, v := range contactSet {
+			file.SetCellValue(sheet1, fmt.Sprintf("A%d", row), v.ContactCode)
+			file.SetCellStyle(sheet1, fmt.Sprintf("A%d", row), fmt.Sprintf("A%d", row), boldStyle)
+			i := 1
+			for key := range productSet {
+				var value any
+				if input.View == "quantity" {
+					val, ok := matrix[key][keyCustomer]
+					if ok && len(val) > 0 {
+						value = val[0].TotalQuantity
+					}
+				}
+				if input.View == "amount" {
+					val, ok := matrix[key][keyCustomer]
+					if ok && len(val) > 0 {
+						value = val[0].TotalPrice
+					}
+				}
+
+				file.SetCellValue(sheet1, fmt.Sprintf("%s%d", utils.NumToAlphabet(i+1), row), value)
+				file.SetCellStyle(sheet1, fmt.Sprintf("%s%d", utils.NumToAlphabet(i+1), row), fmt.Sprintf("%s%d", utils.NumToAlphabet(i+1), row), centerStyle)
+				i++
+			}
+			row++
+		}
+
+		footers := []any{"Grand Total"}
+		colWidth = []float64{15}
+		for _, v := range productSet {
+			if input.View == "quantity" {
+				footers = append(footers, grandTotalQuantity[v.ProductID])
+			} else {
+				footers = append(footers, grandTotalAmount[v.ProductID])
+			}
+			colWidth = append(colWidth, 20)
+		}
+
+		for i, footer := range footers {
+			file.SetCellValue(sheet1, fmt.Sprintf("%s%d", utils.NumToAlphabet(i+1), row), footer)
+			file.SetColWidth(sheet1, utils.NumToAlphabet(i+1), utils.NumToAlphabet(i+1), colWidth[i])
+			if i > 0 {
+				file.SetCellStyle(sheet1, fmt.Sprintf("A%d", row), fmt.Sprintf("%s%d", utils.NumToAlphabet(len(footers)), row), boldStyleFormat)
+			} else {
+				file.SetCellStyle(sheet1, fmt.Sprintf("A%d", row), fmt.Sprintf("%s%d", utils.NumToAlphabet(len(footers)), row), boldStyle)
+			}
+		}
+
+		var buf bytes.Buffer
+		if err := file.Write(&buf); err != nil {
+			log.Println(err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to write XLSX file"})
+			return
+		}
+
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", "attachment; filename=report.xlsx")
+		c.Data(http.StatusOK, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", buf.Bytes())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "product sales customers report retrieved successfully", "data": matrix, "products": productSet, "contacts": contactSet, "grand_total_amount": grandTotalAmount, "grand_total_quantity": grandTotalQuantity})
+
 }

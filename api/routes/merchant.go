@@ -28,5 +28,10 @@ func SetupMerchantRoutes(r *gin.RouterGroup, erpContext *context.ERPContext) {
 		merchantGroup.GET("/:id/desk", middlewares.RbacUserMiddleware(erpContext, false, []string{"order:merchant:update"}), merchantHandler.GetDeskMerchantHandler)
 		merchantGroup.PUT("/:id/desk/:deskId", middlewares.RbacUserMiddleware(erpContext, false, []string{"order:merchant:update"}), merchantHandler.UpdateDeskMerchantHandler)
 		merchantGroup.DELETE("/:id/desk/:deskId", middlewares.RbacUserMiddleware(erpContext, false, []string{"order:merchant:update"}), merchantHandler.DeleteDeskMerchantHandler)
+		merchantGroup.GET("/:id/layouts", middlewares.RbacUserMiddleware(erpContext, false, []string{"order:merchant:update"}), merchantHandler.GetLayoutsMerchantHandler)
+		merchantGroup.GET("/:id/layout/:layoutId", middlewares.RbacUserMiddleware(erpContext, false, []string{"order:merchant:update"}), merchantHandler.GetLayoutDetailMerchantHandler)
+		merchantGroup.PUT("/:id/add-layout", middlewares.RbacUserMiddleware(erpContext, false, []string{"order:merchant:update"}), merchantHandler.AddLayoutMerchantHandler)
+		merchantGroup.PUT("/:id/update-layout/:layoutId", middlewares.RbacUserMiddleware(erpContext, false, []string{"order:merchant:update"}), merchantHandler.UpdateLayoutMerchantHandler)
+		merchantGroup.DELETE("/:id/delete-layout/:layoutId", middlewares.RbacUserMiddleware(erpContext, false, []string{"order:merchant:update"}), merchantHandler.DeleteLayoutMerchantHandler)
 	}
 }

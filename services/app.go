@@ -60,6 +60,7 @@ func (a AppService) GenerateDefaultPermissions() []models.PermissionModel {
 			},
 			"order": {
 				{"sales": append(cruds, "approval", "publish")},
+				{"pos": []string{"cashier", "manager", "report"}},
 				{"merchant": append(cruds, "approval", "publish")},
 			},
 			"menu": {
