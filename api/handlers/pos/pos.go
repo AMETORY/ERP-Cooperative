@@ -1,9 +1,13 @@
 package pos
 
 import (
+	"fmt"
+
 	"github.com/AMETORY/ametory-erp-modules/context"
 	"github.com/AMETORY/ametory-erp-modules/finance"
 	"github.com/AMETORY/ametory-erp-modules/order"
+	"github.com/AMETORY/ametory-erp-modules/shared/models"
+	"github.com/AMETORY/ametory-erp-modules/utils"
 	"github.com/gin-gonic/gin"
 )
 
@@ -62,6 +66,7 @@ func (p *PosHandler) UpdateStatusTableHandler(c *gin.Context) {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
+	utils.LogJson(input)
 	err := p.OrderSrv.MerchantService.UpdateTableStatus(id, tableId, input.Status)
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
@@ -80,4 +85,38 @@ func (p *PosHandler) GetLayoutDetailMerchantHandler(c *gin.Context) {
 		return
 	}
 	c.JSON(200, gin.H{"data": layout, "message": "Merchant layout retrieved successfully"})
+}
+
+func (p *PosHandler) CreateOrderHandler(c *gin.Context) {
+	var input models.MerchantOrder
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+	merchantID := c.MustGet("merchantID").(string)
+
+	err = p.OrderSrv.MerchantService.CreateOrder(merchantID, &input)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	if input.NextStep == "distribute" {
+		fmt.Println("DISTRIBUTE ORDER")
+		orderStations, err := p.OrderSrv.MerchantService.DistributeOrder(merchantID, &input)
+		if err != nil {
+			c.JSON(500, gin.H{"error": err.Error()})
+			return
+		}
+
+		orderStationMap := make(map[string][]models.MerchantStationOrder)
+		for _, v := range orderStations {
+			orderStationMap[*v.MerchantStationID] = append(orderStationMap[*v.MerchantStationID], v)
+		}
+
+		utils.LogJson(orderStationMap)
+
+	}
+	c.JSON(200, gin.H{"message": "Merchant order created successfully"})
 }

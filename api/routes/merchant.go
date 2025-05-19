@@ -33,5 +33,14 @@ func SetupMerchantRoutes(r *gin.RouterGroup, erpContext *context.ERPContext) {
 		merchantGroup.PUT("/:id/add-layout", middlewares.RbacUserMiddleware(erpContext, false, []string{"order:merchant:update"}), merchantHandler.AddLayoutMerchantHandler)
 		merchantGroup.PUT("/:id/update-layout/:layoutId", middlewares.RbacUserMiddleware(erpContext, false, []string{"order:merchant:update"}), merchantHandler.UpdateLayoutMerchantHandler)
 		merchantGroup.DELETE("/:id/delete-layout/:layoutId", middlewares.RbacUserMiddleware(erpContext, false, []string{"order:merchant:update"}), merchantHandler.DeleteLayoutMerchantHandler)
+		merchantGroup.GET("/:id/station", middlewares.RbacUserMiddleware(erpContext, false, []string{"order:merchant:read"}), merchantHandler.GetMerchantStationsHandler)
+		merchantGroup.GET("/:id/station/:stationId", middlewares.RbacUserMiddleware(erpContext, false, []string{"order:merchant:read"}), merchantHandler.GetMerchantStationDetailHandler)
+		merchantGroup.POST("/:id/station", middlewares.RbacUserMiddleware(erpContext, false, []string{"order:merchant:read"}), merchantHandler.CreateMerchantStationHandler)
+		merchantGroup.PUT("/:id/station/:stationId", middlewares.RbacUserMiddleware(erpContext, false, []string{"order:merchant:read"}), merchantHandler.UpdateMerchantStationHandler)
+		merchantGroup.DELETE("/:id/station/:stationId", middlewares.RbacUserMiddleware(erpContext, false, []string{"order:merchant:read"}), merchantHandler.DeleteMerchantStationHandler)
+		merchantGroup.GET("/:id/station/:stationId/product", middlewares.RbacUserMiddleware(erpContext, false, []string{"order:merchant:update"}), merchantHandler.GetProductsMerchantStationHandler)
+		merchantGroup.PUT("/:id/station/:stationId/add-product", middlewares.RbacUserMiddleware(erpContext, false, []string{"order:merchant:update"}), merchantHandler.AddProductMerchantStationHandler)
+		merchantGroup.DELETE("/:id/station/:stationId/delete-product", middlewares.RbacUserMiddleware(erpContext, false, []string{"order:merchant:update"}), merchantHandler.DeleteProductMerchantStationHandler)
+
 	}
 }

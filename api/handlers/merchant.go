@@ -335,3 +335,125 @@ func (p *MerchantHandler) DeleteLayoutMerchantHandler(c *gin.Context) {
 	}
 	c.JSON(200, gin.H{"message": "Layout deleted from merchant successfully"})
 }
+
+func (p *MerchantHandler) GetMerchantStationsHandler(c *gin.Context) {
+	id := c.Param("id")
+	stations, err := p.orderSrc.MerchantService.GetMerchantStations(*c.Request, id)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"data": stations, "message": "Merchant stations retrieved successfully"})
+}
+
+func (p *MerchantHandler) GetMerchantStationDetailHandler(c *gin.Context) {
+	id := c.Param("id")
+	stationId := c.Param("stationId")
+
+	station, err := p.orderSrc.MerchantService.GetMerchantStationDetail(id, stationId)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"data": station, "message": "Merchant station detail retrieved successfully"})
+}
+
+func (p *MerchantHandler) CreateMerchantStationHandler(c *gin.Context) {
+	id := c.Param("id")
+	var input models.MerchantStation
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	err = p.orderSrc.MerchantService.CreateMerchantStation(id, &input)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(201, gin.H{"message": "Merchant station created successfully"})
+}
+
+func (p *MerchantHandler) UpdateMerchantStationHandler(c *gin.Context) {
+	id := c.Param("id")
+	stationId := c.Param("stationId")
+	var input models.MerchantStation
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	err = p.orderSrc.MerchantService.UpdateMerchantStation(id, stationId, &input)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"message": "Merchant station updated successfully"})
+}
+
+func (p *MerchantHandler) DeleteMerchantStationHandler(c *gin.Context) {
+	id := c.Param("id")
+	stationId := c.Param("stationId")
+
+	err := p.orderSrc.MerchantService.DeleteMerchantStation(id, stationId)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"message": "Merchant station deleted successfully"})
+}
+
+func (p *MerchantHandler) AddProductMerchantStationHandler(c *gin.Context) {
+	id := c.Param("id")
+	stationId := c.Param("stationId")
+	var input struct {
+		ProductIDs []string `json:"product_ids"`
+	}
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	err = p.orderSrc.MerchantService.AddProductsToMerchantStation(id, stationId, input.ProductIDs)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"message": "Product added to merchant station successfully"})
+}
+func (p *MerchantHandler) DeleteProductMerchantStationHandler(c *gin.Context) {
+	id := c.Param("id")
+	stationId := c.Param("stationId")
+	var input struct {
+		ProductIDs []string `json:"product_ids"`
+	}
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	err = p.orderSrc.MerchantService.DeleteProductFromMerchantStation(id, stationId, input.ProductIDs)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"message": "Product deleted from merchant station successfully"})
+}
+
+func (p *MerchantHandler) GetProductsMerchantStationHandler(c *gin.Context) {
+	id := c.Param("id")
+	stationId := c.Param("stationId")
+
+	products, err := p.orderSrc.MerchantService.GetProductsFromMerchantStation(id, stationId)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	fmt.Println("PRODUCT MERCHANT", products)
+	c.JSON(200, gin.H{"data": products, "message": "Products from merchant station retrieved successfully"})
+}
