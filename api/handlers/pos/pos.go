@@ -96,6 +96,49 @@ func (p *PosHandler) GetLayoutDetailMerchantHandler(c *gin.Context) {
 	c.JSON(200, gin.H{"data": layout, "message": "Merchant layout retrieved successfully"})
 }
 
+func (p *PosHandler) GetOrdersHandler(c *gin.Context) {
+	merchantID := c.MustGet("merchantID").(string)
+	orders, err := p.OrderSrv.MerchantService.GetOrders(*c.Request, merchantID)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"data": orders, "message": "Orders retrieved successfully"})
+}
+
+func (p *PosHandler) GetStationsHandler(c *gin.Context) {
+	merchantID := c.MustGet("merchantID").(string)
+	stations, err := p.OrderSrv.MerchantService.GetMerchantStations(*c.Request, merchantID)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"data": stations, "message": "Stations retrieved successfully"})
+}
+
+func (p *PosHandler) GetStationDetailHandler(c *gin.Context) {
+	merchantID := c.MustGet("merchantID").(string)
+	stationID := c.Param("stationId")
+
+	station, err := p.OrderSrv.MerchantService.GetMerchantStationDetail(merchantID, stationID)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"data": station, "message": "Station detail retrieved successfully"})
+}
+
+func (p *PosHandler) GetStationOrdersHandler(c *gin.Context) {
+	merchantID := c.MustGet("merchantID").(string)
+	stationID := c.Param("stationId")
+
+	orders, err := p.OrderSrv.MerchantService.GetOrdersFromStation(*c.Request, merchantID, stationID, []string{"PENDING", "DISTRIBUTING", "PROCESSING", "COMPLETED"})
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"data": orders, "message": "Orders from station retrieved successfully"})
+}
 func (p *PosHandler) CreateOrderHandler(c *gin.Context) {
 	var input models.MerchantOrder
 	err := c.ShouldBindJSON(&input)
