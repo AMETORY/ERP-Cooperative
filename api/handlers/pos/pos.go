@@ -1,6 +1,8 @@
 package pos
 
 import (
+	"ametory-cooperative/services"
+	"encoding/json"
 	"fmt"
 
 	"github.com/AMETORY/ametory-erp-modules/context"
@@ -9,12 +11,14 @@ import (
 	"github.com/AMETORY/ametory-erp-modules/shared/models"
 	"github.com/AMETORY/ametory-erp-modules/utils"
 	"github.com/gin-gonic/gin"
+	"gopkg.in/olahol/melody.v1"
 )
 
 type PosHandler struct {
 	ctx        *context.ERPContext
 	financeSrv *finance.FinanceService
 	OrderSrv   *order.OrderService
+	appService *services.AppService
 }
 
 func NewPosHandler(ctx *context.ERPContext) *PosHandler {
@@ -27,10 +31,15 @@ func NewPosHandler(ctx *context.ERPContext) *PosHandler {
 	if !ok {
 		panic("order service is not found")
 	}
+	appService, ok := ctx.AppService.(*services.AppService)
+	if !ok {
+		panic("AppService is not instance of app.AppService")
+	}
 	return &PosHandler{
 		ctx:        ctx,
 		financeSrv: financeSrv,
 		OrderSrv:   orderSrv,
+		appService: appService,
 	}
 }
 
@@ -101,6 +110,7 @@ func (p *PosHandler) CreateOrderHandler(c *gin.Context) {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
+	userID := c.MustGet("userID").(string)
 
 	if input.NextStep == "distribute" {
 		fmt.Println("DISTRIBUTE ORDER")
@@ -113,9 +123,28 @@ func (p *PosHandler) CreateOrderHandler(c *gin.Context) {
 		orderStationMap := make(map[string][]models.MerchantStationOrder)
 		for _, v := range orderStations {
 			orderStationMap[*v.MerchantStationID] = append(orderStationMap[*v.MerchantStationID], v)
+
 		}
 
-		utils.LogJson(orderStationMap)
+		// utils.LogJson(orderStationMap)
+
+		for stationID, v := range orderStationMap {
+			msg := gin.H{
+				"message":             "ORDER_STATION_CREATED",
+				"sender_id":           userID,
+				"merchant_id":         merchantID,
+				"merchant_station_id": stationID,
+				"merchant_order_id":   input.ID,
+				"merchant_desk_id":    input.MerchantDeskID,
+				"items":               v,
+			}
+			b, _ := json.Marshal(msg)
+			p.ctx.AppService.(*services.AppService).Websocket.BroadcastFilter(b, func(q *melody.Session) bool {
+				url := fmt.Sprintf("/api/v1/ws/%s", c.GetHeader("ID-Company"))
+				// fmt.Println("ORDER_STATION_CREATED", url, q.Request.URL.Path)
+				return q.Request.URL.Path == url
+			})
+		}
 
 	}
 	c.JSON(200, gin.H{"message": "Merchant order created successfully"})
