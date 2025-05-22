@@ -106,6 +106,18 @@ func (p *PosHandler) GetOrdersHandler(c *gin.Context) {
 	c.JSON(200, gin.H{"data": orders, "message": "Orders retrieved successfully"})
 }
 
+func (p *PosHandler) GetOrderDetailHandler(c *gin.Context) {
+	merchantID := c.MustGet("merchantID").(string)
+	orderID := c.Param("orderId")
+
+	order, err := p.OrderSrv.MerchantService.GetOrderDetail(merchantID, orderID)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"data": order, "message": "Order detail retrieved successfully"})
+}
+
 func (p *PosHandler) GetStationsHandler(c *gin.Context) {
 	merchantID := c.MustGet("merchantID").(string)
 	stations, err := p.OrderSrv.MerchantService.GetMerchantStations(*c.Request, merchantID)
@@ -139,6 +151,52 @@ func (p *PosHandler) GetStationOrdersHandler(c *gin.Context) {
 	}
 	c.JSON(200, gin.H{"data": orders, "message": "Orders from station retrieved successfully"})
 }
+
+func (p *PosHandler) UpdateStationOrderHandler(c *gin.Context) {
+	merchantID := c.MustGet("merchantID").(string)
+	stationID := c.Param("stationId")
+	orderID := c.Param("orderId")
+
+	var input struct {
+		Status string `json:"status"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	stationOrder, err := p.OrderSrv.MerchantService.GetMerchantOrderStation(orderID, stationID)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	err = p.OrderSrv.MerchantService.UpdateStationOrderStatus(stationID, orderID, input.Status)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	userID := c.MustGet("userID").(string)
+
+	msg := gin.H{
+		"command":             "ORDER_STATION_UPDATED",
+		"message":             "Order station updated",
+		"sender_id":           userID,
+		"merchant_id":         merchantID,
+		"merchant_station_id": stationID,
+		"merchant_order_id":   stationOrder.OrderID,
+		"merchant_desk_id":    stationOrder.MerchantDeskID,
+		"status":              input.Status,
+	}
+	b, _ := json.Marshal(msg)
+	p.ctx.AppService.(*services.AppService).Websocket.BroadcastFilter(b, func(q *melody.Session) bool {
+		url := fmt.Sprintf("/api/v1/ws/%s", c.GetHeader("ID-Company"))
+		// fmt.Println("ORDER_STATION_CREATED", url, q.Request.URL.Path)
+		return q.Request.URL.Path == url
+	})
+	c.JSON(200, gin.H{"message": "Station order updated successfully"})
+}
+
 func (p *PosHandler) CreateOrderHandler(c *gin.Context) {
 	var input models.MerchantOrder
 	err := c.ShouldBindJSON(&input)
@@ -173,7 +231,8 @@ func (p *PosHandler) CreateOrderHandler(c *gin.Context) {
 
 		for stationID, v := range orderStationMap {
 			msg := gin.H{
-				"message":             "ORDER_STATION_CREATED",
+				"command":             "ORDER_STATION_CREATED",
+				"message":             "order station created",
 				"sender_id":           userID,
 				"merchant_id":         merchantID,
 				"merchant_station_id": stationID,
