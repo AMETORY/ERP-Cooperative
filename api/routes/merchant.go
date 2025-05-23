@@ -15,6 +15,7 @@ func SetupMerchantRoutes(r *gin.RouterGroup, erpContext *context.ERPContext) {
 	{
 		merchantGroup.GET("/list", middlewares.RbacUserMiddleware(erpContext, false, []string{"order:merchant:read"}), merchantHandler.ListMerchantsHandler)
 		merchantGroup.GET("/:id", middlewares.RbacUserMiddleware(erpContext, false, []string{"order:merchant:read"}), merchantHandler.GetMerchantHandler)
+		merchantGroup.GET("/:id/censored", middlewares.RbacUserMiddleware(erpContext, false, []string{"order:merchant:read"}), merchantHandler.GetCensoredInformation)
 		merchantGroup.GET("/:id/products", middlewares.RbacUserMiddleware(erpContext, false, []string{"order:merchant:read"}), merchantHandler.GetMerchantProductsHandler)
 		merchantGroup.POST("/create", middlewares.RbacUserMiddleware(erpContext, false, []string{"order:merchant:create"}), merchantHandler.CreateMerchantHandler)
 		merchantGroup.PUT("/:id", middlewares.RbacUserMiddleware(erpContext, false, []string{"order:merchant:update"}), merchantHandler.UpdateMerchantHandler)

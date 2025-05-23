@@ -2,10 +2,12 @@ package handlers
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/AMETORY/ametory-erp-modules/context"
 	"github.com/AMETORY/ametory-erp-modules/order"
 	"github.com/AMETORY/ametory-erp-modules/shared/models"
+	"github.com/AMETORY/ametory-erp-modules/utils"
 	"github.com/gin-gonic/gin"
 )
 
@@ -32,7 +34,23 @@ func (p *MerchantHandler) GetMerchantHandler(c *gin.Context) {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
+	if merchant.EnableXendit && merchant.XenditApiKey != "" {
+		merchant.XenditApiKeyCensored = fmt.Sprintf("%s%s%s", merchant.XenditApiKey[:4], strings.Repeat("*", len(merchant.XenditApiKey)-8), merchant.XenditApiKey[len(merchant.XenditApiKey)-4:])
+		merchant.XenditApiKey = ""
+	}
 	c.JSON(200, gin.H{"data": merchant, "message": "Merchant retrieved successfully"})
+}
+
+func (p *MerchantHandler) GetCensoredInformation(c *gin.Context) {
+	id := c.Param("id")
+	merchant, err := p.orderSrc.MerchantService.GetMerchantByID(id)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"data": gin.H{
+		"xendit_api_key": merchant.XenditApiKey,
+	}, "message": "Merchant retrieved successfully"})
 }
 
 func (p *MerchantHandler) ListMerchantsHandler(c *gin.Context) {
@@ -80,6 +98,38 @@ func (p *MerchantHandler) UpdateMerchantHandler(c *gin.Context) {
 		input.Picture.RefID = input.ID
 		input.Picture.RefType = "merchant"
 		err = p.ctx.DB.Save(&input.Picture).Error
+		if err != nil {
+			c.JSON(500, gin.H{"error": err.Error()})
+			return
+		}
+	}
+
+	if input.EnableXendit {
+		if input.Xendit == nil {
+			fmt.Println("CREATE XENDIT", input.Xendit)
+			input.Xendit = &models.XenditModel{
+				MerchantID: &input.ID,
+			}
+			input.Xendit.ID = utils.Uuid()
+			p.ctx.DB.Create(&input.Xendit)
+		} else {
+			fmt.Println("UPDATE XENDIT")
+
+			if !input.Xendit.EnableQRIS {
+				input.Xendit.EnableQRIS = false
+				p.ctx.DB.Save(&input.Xendit)
+			}
+			if input.Xendit.QRISFee == 0 {
+				input.Xendit.EnableQRIS = false
+				p.ctx.DB.Model(&input.Xendit).Where("id = ?", input.Xendit.ID).Update("qris_fee", 0)
+			}
+
+			p.ctx.DB.Updates(&input.Xendit)
+		}
+
+	} else {
+		fmt.Println("DISABLE XENDIT")
+		err := p.ctx.DB.Model(&input).Where("id = ?", id).Omit("Xendit").Update("enable_xendit", false).Error
 		if err != nil {
 			c.JSON(500, gin.H{"error": err.Error()})
 			return
