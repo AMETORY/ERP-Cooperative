@@ -3,6 +3,7 @@ package pos
 import (
 	"ametory-cooperative/services"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -77,17 +78,27 @@ func (p *PosHandler) UpdateStatusTableHandler(c *gin.Context) {
 	tableId := c.Param("tableId")
 
 	input := struct {
-		Status string `json:"status"`
+		Status       string `json:"status"`
+		ContactName  string `json:"contact_name"`
+		ContactPhone string `json:"contact_phone"`
+		ContactID    string `json:"contact_id"`
 	}{}
 	if err := c.BindJSON(&input); err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
-	utils.LogJson(input)
+	// utils.LogJson(input)
 	err := p.OrderSrv.MerchantService.UpdateTableStatus(id, tableId, input.Status)
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
+	}
+	if input.ContactName != "" || input.ContactPhone != "" || input.ContactID != "" {
+		err = p.OrderSrv.MerchantService.UpdateTableContact(id, tableId, input.ContactName, input.ContactPhone, input.ContactID)
+		if err != nil {
+			c.JSON(500, gin.H{"error": err.Error()})
+			return
+		}
 	}
 	c.JSON(200, gin.H{"message": "Table status updated successfully"})
 
@@ -213,13 +224,50 @@ func (p *PosHandler) CreateOrderHandler(c *gin.Context) {
 		return
 	}
 	merchantID := c.MustGet("merchantID").(string)
+	userID := c.MustGet("userID").(string)
+	input.CashierID = &userID
+	companyID := c.GetHeader("ID-Company")
+
+	if (input.ContactName != "" || input.ContactPhone != "") && input.ContactID == nil {
+		var contact models.ContactModel
+		phoneNumber := ""
+		if input.ContactPhone != "" {
+			phoneNumber = utils.ParsePhoneNumber(input.ContactPhone, "ID")
+		}
+		err := p.ctx.DB.Where("company_id = ?  AND phone = ?", companyID, input.ContactName, phoneNumber).First(&contact).Error
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			contact.CompanyID = &companyID
+			contact.Name = input.ContactName
+			contact.Phone = &phoneNumber
+			contact.IsCustomer = true
+			err := p.ctx.DB.Create(&contact).Error
+			if err != nil {
+				c.JSON(400, gin.H{"error": err.Error()})
+				return
+			}
+
+			input.ContactID = &contact.ID
+
+			b, _ := json.Marshal(contact)
+			input.ContactData = b
+		}
+
+	} else if input.ContactID != nil {
+		var contact models.ContactModel
+		err := p.ctx.DB.First(&contact, "id = ?", *input.ContactID).Error
+		if err != nil {
+			c.JSON(400, gin.H{"error": err.Error()})
+			return
+		}
+		b, _ := json.Marshal(contact)
+		input.ContactData = b
+	}
 
 	err = p.OrderSrv.MerchantService.CreateOrder(merchantID, &input)
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
-	userID := c.MustGet("userID").(string)
 
 	if input.NextStep == "distribute" {
 		fmt.Println("DISTRIBUTE ORDER")
@@ -297,6 +345,17 @@ func (p *PosHandler) PaymentCheckHandler(c *gin.Context) {
 			if len(payments) > 0 {
 				order.OrderStatus = "PAID"
 				p.ctx.DB.Save(&order)
+				err = p.ctx.DB.Model(&models.MerchantDesk{}).Where("merchant_id = ? AND id = ?", merchantID, order.MerchantDeskID).
+					Updates(map[string]any{
+						"contact_name":  "",
+						"contact_phone": "",
+						"contact_id":    nil,
+						"status":        "AVAILABLE",
+					}).Error
+				if err != nil {
+					c.JSON(500, gin.H{"error": err.Error()})
+					return
+				}
 
 				p.ctx.AppService.(*services.AppService).Websocket.BroadcastFilter(b, func(q *melody.Session) bool {
 					url := fmt.Sprintf("/api/v1/ws/%s", c.GetHeader("ID-Company"))
@@ -337,6 +396,64 @@ func (p *PosHandler) PaymentCheckHandler(c *gin.Context) {
 
 	c.JSON(200, gin.H{"message": "Payment check completed"})
 }
+func (p *PosHandler) SplitBillHandler(c *gin.Context) {
+	merchantID := c.Param("id")
+	orderID := c.Param("orderId")
+	companyID := c.GetHeader("ID-Company")
+
+	input := struct {
+		ContactName  string                     `json:"contact_name"`
+		ContactPhone string                     `json:"contact_phone"`
+		ContactID    *string                    `json:"contact_id"`
+		Items        []models.MerchantOrderItem `json:"items"`
+	}{}
+	if err := c.BindJSON(&input); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+	order, err := p.OrderSrv.MerchantService.GetOrderDetail(merchantID, orderID)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	var contact *models.ContactModel
+	if (input.ContactName != "" || input.ContactPhone != "") && input.ContactID == nil {
+		phoneNumber := ""
+		if input.ContactPhone != "" {
+			phoneNumber = utils.ParsePhoneNumber(input.ContactPhone, "ID")
+		}
+		err := p.ctx.DB.Where("company_id = ?  AND phone = ?", companyID, input.ContactName, phoneNumber).First(&contact).Error
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			contact.CompanyID = &companyID
+			contact.Name = input.ContactName
+			contact.Phone = &phoneNumber
+			contact.IsCustomer = true
+			err := p.ctx.DB.Create(contact).Error
+			if err != nil {
+				c.JSON(400, gin.H{"error": err.Error()})
+				return
+			}
+		}
+
+	} else if input.ContactID != nil {
+		var contact models.ContactModel
+		err := p.ctx.DB.First(contact, "id = ?", *input.ContactID).Error
+		if err != nil {
+			c.JSON(400, gin.H{"error": err.Error()})
+			return
+		}
+	}
+	// utils.LogJson(input)
+	newOrder, err := p.OrderSrv.MerchantService.SplitBill(order, contact, input.Items)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(200, gin.H{"data": newOrder, "message": "Order detail retrieved successfully"})
+
+}
 func (p *PosHandler) PaymentOrderHandler(c *gin.Context) {
 	merchantID := c.MustGet("merchantID").(string)
 	orderID := c.Param("orderId")
@@ -364,6 +481,10 @@ func (p *PosHandler) PaymentOrderHandler(c *gin.Context) {
 	}
 	if len(input) == 1 {
 		order.OrderStatus = "PAID"
+		if input[0].PaymentProvider == "QRIS" && (!merchant.EnableXendit || !merchant.Xendit.EnableQRIS) {
+			c.JSON(400, gin.H{"error": "QRIS is not enabled"})
+			return
+		}
 	}
 	if len(input) > 2 {
 		c.JSON(400, gin.H{"error": "only 2 payment method is allowed"})
@@ -381,7 +502,7 @@ func (p *PosHandler) PaymentOrderHandler(c *gin.Context) {
 			return
 		}
 
-		if input[0].PaymentMethod == "QRIS" && (!merchant.EnableXendit || !merchant.Xendit.EnableQRIS) {
+		if input[1].PaymentProvider == "QRIS" && (!merchant.EnableXendit || !merchant.Xendit.EnableQRIS) {
 			c.JSON(400, gin.H{"error": "QRIS is not enabled"})
 			return
 		}
@@ -413,13 +534,28 @@ func (p *PosHandler) PaymentOrderHandler(c *gin.Context) {
 		// 	c.JSON(400, gin.H{"error": "BRI is not enabled"})
 		// 	return
 		// }
-
+		if input[1].PaymentProvider == "EDC" {
+			order.OrderStatus = "PAID"
+		}
 	}
 
 	err = p.ctx.DB.Transaction(func(tx *gorm.DB) error {
 		err := tx.Save(order).Error
 		if err != nil {
 			return err
+		}
+
+		if order.OrderStatus == "PAID" {
+			err = tx.Model(&models.MerchantDesk{}).Where("merchant_id = ? AND id = ?", merchantID, order.MerchantDeskID).
+				Updates(map[string]any{
+					"contact_name":  "",
+					"contact_phone": "",
+					"contact_id":    nil,
+					"status":        "AVAILABLE",
+				}).Error
+			if err != nil {
+				return err
+			}
 		}
 
 		for _, v := range input {
@@ -481,4 +617,24 @@ func (p *PosHandler) PaymentOrderHandler(c *gin.Context) {
 	})
 
 	c.JSON(200, gin.H{"message": "Order paid successfully"})
+}
+
+func (s *PosHandler) DownloadOrderDetailPdfHandler(c *gin.Context) {
+	orderId := c.Param("orderId")
+	merchantId := c.Param("id")
+
+	order, err := s.OrderSrv.MerchantService.GetOrderDetail(merchantId, orderId)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	pdf, err := s.OrderSrv.MerchantService.GetPrintReceipt(order, "templates/pdf/receipt.html", "")
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.Data(200, "application/pdf", pdf)
+	c.Writer.Header().Add("Content-Disposition", "attachment; filename="+order.Code+".pdf")
 }

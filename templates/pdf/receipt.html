@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Receipt</title>
+    <style>
+        * {
+            font-family: "Inconsolata", monospace;
+            font-size: 11px;
+            width: 57mm;
+        }
+
+        body {
+            font-family: "Inconsolata", monospace;
+            font-size: 12px;
+
+        }
+
+        .invoice-header .code {
+            font-size: 7pt;
+        }
+
+        .invoice-header {
+            font-size: 8pt;
+        }
+
+        .invoice-header h1 {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 0 !important;
+            margin-top: 0;
+            text-align: center;
+        }
+        .invoice-header h5 {
+            font-size: 10px;
+            margin-bottom: 0 !important;
+            margin-top: 0;
+            text-align: center;
+        }
+
+        .invoice-header p {
+            margin-bottom: 0;
+        }
+
+        .invoice-table {
+            margin-top: 10px;
+        }
+
+        .invoice-table td {
+            vertical-align: top;
+            padding-bottom: 10px;
+        }
+
+        .invoice-table .total {
+            font-weight: 700;
+            text-align: right;
+            font-size: 8pt;
+
+        }
+
+        .total-wrapper td {
+            padding-bottom: 0 !important;
+        }
+
+        .invoice-table .subtotal,
+        .invoice-table .discount {
+            text-align: right;
+            font-size: 8pt;
+        }
+
+        .invoice-footer {
+            margin-top: 10px;
+        }
+
+        .invoice-footer p {
+            margin-bottom: 0;
+        }
+
+        .invoice-footer .invoice-note {
+            font-size: 10px;
+            text-align: center;
+        }
+
+        p {
+            margin-bottom: 0;
+        }
+
+        .amount {
+            text-align: right;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="invoice-header">
+        <h1>{{ .MerchantName }}</h1>
+        <h5>{{ .MerchantAddress }}</h5>
+        <br class="code"><strong><small>Kode:</small></strong> {{.Code}}
+        <br><strong><small>Tgl:</small></strong> {{.Date}}
+        <br><strong><small>Cashier:</small></strong> {{.CashierName}}
+        {{if .CustomerName}}
+        <br><strong><small>Customer:</small></strong> {{.CustomerName}}
+        {{end}}
+    </div>
+    <table class="invoice-table">
+        <tbody>
+            {{range .Items}}
+            <tr>
+                <td>
+                    <strong>{{.Description}}</strong><br>
+                    {{.Quantity}} x {{.Price}}<br />
+                    {{if .DiscountPercent}}
+                    <span style="font-size: 7pt;">Disc. {{.DiscountPercent}}</span><br>
+                    {{end}}
+                    {{if .Notes}}
+                    <i style="font-size: 7pt;">{{.Notes}}</i><br>
+                    {{end}}
+
+                </td>
+                <td class="amount">{{.Total}}</td>
+            </tr>
+            {{end}}
+            <tr class="total-wrapper">
+                <td class="subtotal">SubTotal</td>
+                <td class="amount">{{.SubTotalPrice}}</td>
+            </tr>
+            <tr>
+                <td class="discount">Disc</td>
+                <td class="amount">{{.DiscountAmount}}</td>
+            </tr>
+            <tr>
+                <td class="total">Total</td>
+                <td class="amount">{{.TotalPrice}}</td>
+            </tr>
+        </tbody>
+    </table>
+</body>
+
+</html>
