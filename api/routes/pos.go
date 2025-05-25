@@ -29,6 +29,8 @@ func SetupPosRoutes(router *gin.RouterGroup, erpContext *context.ERPContext) {
 		group.GET("/merchant/:id/layouts", middlewares.RbacUserMiddleware(erpContext, false, []string{"order:pos:cashier"}), handler.GetLayoutsMerchantHandler)
 		group.GET("/merchant/:id/layout/:layoutId", middlewares.RbacUserMiddleware(erpContext, false, []string{"order:pos:cashier"}), handler.GetLayoutDetailMerchantHandler)
 		group.PUT("/merchant/:id/table/:tableId/update-status", middlewares.RbacUserMiddleware(erpContext, false, []string{"order:pos:cashier"}), handler.UpdateStatusTableHandler)
+		group.GET("/merchant/:id/table/:tableId", middlewares.RbacUserMiddleware(erpContext, false, []string{"order:pos:cashier"}), handler.GetTableDetailHandler)
+		group.PUT("/merchant/:id/order/:orderId/move-table", middlewares.RbacUserMiddleware(erpContext, false, []string{"order:pos:cashier"}), handler.MoveTableHandler)
 
 		group.POST("/merchant/:id/dashboard/summary", middlewares.RbacUserMiddleware(erpContext, false, []string{"order:pos:cashier"}), handler.GetDashboardSummaryHandler)
 	}

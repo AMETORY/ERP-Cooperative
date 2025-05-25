@@ -754,3 +754,91 @@ func (s *PosHandler) DownloadOrderDetailPdfHandler(c *gin.Context) {
 	c.Data(200, "application/pdf", pdf)
 	c.Writer.Header().Add("Content-Disposition", "attachment; filename="+order.Code+".pdf")
 }
+
+func (p *PosHandler) GetTableDetailHandler(c *gin.Context) {
+	merchantID := c.Param("id")
+	tableID := c.Param("tableId")
+
+	table, err := p.OrderSrv.MerchantService.GetMerchantTableDetail(merchantID, tableID)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"data": table, "message": "Table detail retrieved successfully"})
+}
+
+func (p *PosHandler) MoveTableHandler(c *gin.Context) {
+	merchantID := c.Param("id")
+	orderID := c.Param("orderId")
+	input := struct {
+		OldTableID string `json:"old_table_id" binding:"required"`
+		TableID    string `json:"table_id" binding:"required"`
+	}{}
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+	order := &models.MerchantOrder{}
+
+	fmt.Println("NEW TABLE ID", input.TableID)
+	err = p.ctx.DB.Debug().Model(&order).Where("id = ? AND merchant_id = ?", orderID, merchantID).Updates(map[string]any{
+		"merchant_desk_id": input.TableID,
+	}).Error
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	var oldTable models.MerchantDesk
+	err = p.ctx.DB.Debug().Model(&oldTable).Where("id = ?", input.OldTableID).First(&oldTable).Error
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	newTable := &models.MerchantDesk{}
+
+	contactName := oldTable.ContactName
+	contactPhone := oldTable.ContactPhone
+	contactID := oldTable.ContactID
+	oldStatus := oldTable.Status
+
+	err = p.ctx.DB.Debug().Model(&newTable).Where("id = ? AND merchant_id = ?", input.TableID, merchantID).Updates(map[string]any{
+		"status":        oldStatus,
+		"contact_name":  contactName,
+		"contact_phone": contactPhone,
+		"contact_id":    contactID,
+	}).Error
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	err = p.ctx.DB.Debug().Model(&oldTable).Where("id = ? AND merchant_id = ?", input.OldTableID, merchantID).Updates(map[string]any{
+		"status":        "AVAILABLE",
+		"contact_name":  "",
+		"contact_phone": "",
+		"contact_id":    nil,
+	}).Error
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	userID := c.MustGet("userID").(string)
+	msg := gin.H{
+		"command":     "MOVE_TABLE",
+		"message":     "Table moved successfully",
+		"sender_id":   userID,
+		"merchant_id": merchantID,
+		"order_id":    orderID,
+	}
+	b, _ := json.Marshal(msg)
+	p.ctx.AppService.(*services.AppService).Websocket.BroadcastFilter(b, func(q *melody.Session) bool {
+		url := fmt.Sprintf("/api/v1/ws/%s", c.GetHeader("ID-Company"))
+		// fmt.Println("ORDER_STATION_CREATED", url, q.Request.URL.Path)
+		return q.Request.URL.Path == url
+	})
+	c.JSON(200, gin.H{"message": "Table moved successfully"})
+}
