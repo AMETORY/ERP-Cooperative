@@ -17,6 +17,7 @@ import (
 	"github.com/google/uuid"
 	"gopkg.in/olahol/melody.v1"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type PosHandler struct {
@@ -305,6 +306,21 @@ func (p *PosHandler) CreateOrderHandler(c *gin.Context) {
 		}
 
 	}
+
+	msg := gin.H{
+		"command":           "ORDER_CREATED",
+		"message":           "order  created",
+		"sender_id":         userID,
+		"merchant_id":       merchantID,
+		"merchant_order_id": input.ID,
+		"merchant_desk_id":  input.MerchantDeskID,
+	}
+	b, _ := json.Marshal(msg)
+	p.ctx.AppService.(*services.AppService).Websocket.BroadcastFilter(b, func(q *melody.Session) bool {
+		url := fmt.Sprintf("/api/v1/ws/%s", c.GetHeader("ID-Company"))
+		// fmt.Println("ORDER_STATION_CREATED", url, q.Request.URL.Path)
+		return q.Request.URL.Path == url
+	})
 	c.JSON(200, gin.H{"message": "Merchant order created successfully"})
 }
 
@@ -331,7 +347,7 @@ func (p *PosHandler) PaymentCheckHandler(c *gin.Context) {
 		"merchant_id": merchantID,
 		"order_id":    orderID,
 	}
-	b, _ := json.Marshal(msg)
+	msgByte, _ := json.Marshal(msg)
 	for _, v := range order.Payments {
 		if v.PaymentProvider == "QRIS" {
 			p.xenditService.SetAPIKey(merchant.XenditApiKey)
@@ -345,19 +361,22 @@ func (p *PosHandler) PaymentCheckHandler(c *gin.Context) {
 			if len(payments) > 0 {
 				order.OrderStatus = "PAID"
 				p.ctx.DB.Save(&order)
-				err = p.ctx.DB.Model(&models.MerchantDesk{}).Where("merchant_id = ? AND id = ?", merchantID, order.MerchantDeskID).
-					Updates(map[string]any{
-						"contact_name":  "",
-						"contact_phone": "",
-						"contact_id":    nil,
-						"status":        "AVAILABLE",
-					}).Error
-				if err != nil {
-					c.JSON(500, gin.H{"error": err.Error()})
-					return
+
+				if order.ParentID != nil {
+					err = p.ctx.DB.Model(&models.MerchantDesk{}).Where("merchant_id = ? AND id = ?", merchantID, order.MerchantDeskID).
+						Updates(map[string]any{
+							"contact_name":  "",
+							"contact_phone": "",
+							"contact_id":    nil,
+							"status":        "AVAILABLE",
+						}).Error
+					if err != nil {
+						c.JSON(500, gin.H{"error": err.Error()})
+						return
+					}
 				}
 
-				p.ctx.AppService.(*services.AppService).Websocket.BroadcastFilter(b, func(q *melody.Session) bool {
+				p.ctx.AppService.(*services.AppService).Websocket.BroadcastFilter(msgByte, func(q *melody.Session) bool {
 					url := fmt.Sprintf("/api/v1/ws/%s", c.GetHeader("ID-Company"))
 					// fmt.Println("ORDER_STATION_CREATED", url, q.Request.URL.Path)
 					return q.Request.URL.Path == url
@@ -384,12 +403,31 @@ func (p *PosHandler) PaymentCheckHandler(c *gin.Context) {
 			}
 			if resp.Status == "INACTIVE" {
 				order.OrderStatus = "PAYMENT_FAILED"
-				p.ctx.DB.Save(&order)
-				p.ctx.AppService.(*services.AppService).Websocket.BroadcastFilter(b, func(q *melody.Session) bool {
+				p.ctx.DB.Omit(clause.Associations).Save(&order)
+
+				msg := gin.H{
+					"command":     "PAYMENT_FAILED",
+					"message":     "Order payment failed",
+					"sender_id":   userID,
+					"merchant_id": merchantID,
+					"order_id":    orderID,
+				}
+				msgByte, _ := json.Marshal(msg)
+
+				p.ctx.AppService.(*services.AppService).Websocket.BroadcastFilter(msgByte, func(q *melody.Session) bool {
 					url := fmt.Sprintf("/api/v1/ws/%s", c.GetHeader("ID-Company"))
 					// fmt.Println("ORDER_STATION_CREATED", url, q.Request.URL.Path)
 					return q.Request.URL.Path == url
 				})
+
+				b, _ := json.Marshal(resp)
+				v.PaymentData = b
+				err = p.ctx.DB.Save(&v).Error
+				if err != nil {
+					c.JSON(500, gin.H{"error": err.Error()})
+					return
+				}
+
 			}
 		}
 	}
@@ -437,12 +475,14 @@ func (p *PosHandler) SplitBillHandler(c *gin.Context) {
 		}
 
 	} else if input.ContactID != nil {
-		var contact models.ContactModel
-		err := p.ctx.DB.First(contact, "id = ?", *input.ContactID).Error
+		var existingContact models.ContactModel
+		err := p.ctx.DB.First(&existingContact, "id = ?", *input.ContactID).Error
 		if err != nil {
 			c.JSON(400, gin.H{"error": err.Error()})
 			return
 		}
+
+		contact = &existingContact
 	}
 	// utils.LogJson(input)
 	newOrder, err := p.OrderSrv.MerchantService.SplitBill(order, contact, input.Items)
@@ -451,8 +491,80 @@ func (p *PosHandler) SplitBillHandler(c *gin.Context) {
 		return
 	}
 
+	userID := c.MustGet("userID").(string)
+
+	msg := gin.H{
+		"command":     "SPLIT_BILL",
+		"message":     "Split bill successfully",
+		"sender_id":   userID,
+		"merchant_id": merchantID,
+		"order_id":    orderID,
+	}
+	b, _ := json.Marshal(msg)
+	p.ctx.AppService.(*services.AppService).Websocket.BroadcastFilter(b, func(q *melody.Session) bool {
+		url := fmt.Sprintf("/api/v1/ws/%s", c.GetHeader("ID-Company"))
+		// fmt.Println("ORDER_STATION_CREATED", url, q.Request.URL.Path)
+		return q.Request.URL.Path == url
+	})
+
 	c.JSON(200, gin.H{"data": newOrder, "message": "Order detail retrieved successfully"})
 
+}
+func (p *PosHandler) RepaymentOrderHandler(c *gin.Context) {
+	merchantID := c.MustGet("merchantID").(string)
+	orderID := c.Param("orderId")
+
+	merchant, err := p.OrderSrv.MerchantService.GetMerchantByID(merchantID)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	order, err := p.OrderSrv.MerchantService.GetOrderDetail(merchant.ID, orderID)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	for _, v := range order.Payments {
+		if v.PaymentProvider == "QRIS" {
+			p.xenditService.SetAPIKey(merchant.XenditApiKey)
+			resp, err := p.xenditService.CreateQR(xendit.XenditQRrequest{
+				ReferenceID: v.OrderID,
+				Amount:      v.Amount,
+				Currency:    "IDR",
+				Type:        "DYNAMIC",
+				ExpiresAt:   time.Now().Add(time.Minute * 5).Format(time.RFC3339),
+			})
+			if err != nil {
+				c.JSON(500, gin.H{"error": err.Error()})
+				return
+			}
+			fmt.Println("REPAYMENT QRIS DATA")
+			utils.LogJson(resp)
+			b, err := json.Marshal(resp)
+			if err != nil {
+				c.JSON(500, gin.H{"error": err.Error()})
+				return
+			}
+			v.PaymentData = b
+			v.ExternalID = resp.ID
+			v.ExternalProvider = "xendit"
+			err = p.ctx.DB.Save(&v).Error
+			if err != nil {
+				c.JSON(500, gin.H{"error": err.Error()})
+				return
+			}
+			order.OrderStatus = "PENDING_PAYMENT"
+			err = p.ctx.DB.Save(&order).Error
+			if err != nil {
+				c.JSON(500, gin.H{"error": err.Error()})
+				return
+			}
+		}
+	}
+
+	c.JSON(200, gin.H{"message": "Order repayment successfully"})
 }
 func (p *PosHandler) PaymentOrderHandler(c *gin.Context) {
 	merchantID := c.MustGet("merchantID").(string)
@@ -484,6 +596,10 @@ func (p *PosHandler) PaymentOrderHandler(c *gin.Context) {
 		if input[0].PaymentProvider == "QRIS" && (!merchant.EnableXendit || !merchant.Xendit.EnableQRIS) {
 			c.JSON(400, gin.H{"error": "QRIS is not enabled"})
 			return
+		}
+
+		if input[0].PaymentProvider == "QRIS" {
+			order.OrderStatus = "PENDING_PAYMENT"
 		}
 	}
 	if len(input) > 2 {
@@ -545,7 +661,7 @@ func (p *PosHandler) PaymentOrderHandler(c *gin.Context) {
 			return err
 		}
 
-		if order.OrderStatus == "PAID" {
+		if order.OrderStatus == "PAID" && order.ParentID == nil {
 			err = tx.Model(&models.MerchantDesk{}).Where("merchant_id = ? AND id = ?", merchantID, order.MerchantDeskID).
 				Updates(map[string]any{
 					"contact_name":  "",
